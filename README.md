@@ -22,13 +22,27 @@
 ## Зависимости
 
 * вебсервер - github.com/gin-gonic/gin
-* ресайз - https://github.com/disintegration/imaging, https://github.com/nfnt/resize 
+* ресайз - 
+  * https://github.com/disintegration/imaging, https://github.com/nfnt/resize
+  * https://github.com/anthonynsimon/bild
+  * https://github.com/disintegration/gift
+  * https://github.com/disintegration/imaging
+
+* аналоги
+  * https://github.com/h2non/imaginary
+  * https://github.com/aldor007/mort
+  * https://github.com/thoas/picfit
+
 
 ## Что учесть
 
 Вариант ответа - редирект на адрес картинки.
 Для GET тоже - чтобы рефреш не повторял скачивание
-по новому адресу можно получить id изображения, отрезав префикс
+по redirect url можно получить id изображения, отрезав префикс
 
 Предусмотреть простоту замены библиотеки ресайза
 
+## Уточнения ТЗ
+
+* не задан список форматов изображений (может, .svg?), это нужно при выборе пакета ресайза. Без этого уточнения принимает, что список форматов аналогичен списку выбранного пакета ресайза
+* возвращаем только изображение (размер заранее известен), не потоки
