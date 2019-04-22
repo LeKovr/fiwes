@@ -17,17 +17,16 @@
 * cmd/imgserv - Вебсервер
 * upload - прием и сохранение файла
 * resize - ресайз
-* show - показ
+* view - показ
 
 ## Зависимости
 
-* вебсервер - github.com/gin-gonic/gin
+* вебсервер - http://github.com/gin-gonic/gin
 * ресайз - 
-  * https://github.com/disintegration/imaging, https://github.com/nfnt/resize
+  * https://github.com/disintegration/imaging
+  * https://github.com/nfnt/resize
   * https://github.com/anthonynsimon/bild
   * https://github.com/disintegration/gift
-  * https://github.com/disintegration/imaging
-
 * аналоги
   * https://github.com/h2non/imaginary
   * https://github.com/aldor007/mort
@@ -41,6 +40,17 @@
 по redirect url можно получить id изображения, отрезав префикс
 
 Предусмотреть простоту замены библиотеки ресайза
+
+TODO
+
+* [ ] channels
+* [ ] html
+* [ ] js (show preview?)
+* [ ] refactoring
+* [ ] tests
+* [ ] docs
+
+если оригинальный файл 100x100 - делать симлинк 
 
 ## Уточнения ТЗ
 

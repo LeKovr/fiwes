@@ -8,3 +8,8 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
+# img store
+data
+
+# tmp tests
+test*
