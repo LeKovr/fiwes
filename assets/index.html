@@ -1,35 +1,47 @@
-<!-- 
-code from https://stackoverflow.com/a/23669825/5199825
--->
+<!DOCTYPE html>
 <html>
-<body>
-<input id="inputFileToLoad" type="file"  onchange="encodeImageFileAsURL();" />
-	<form method="POST" action="/upload">
-<input id="inputDataToSend" type="hidden" name="data"/>
-<input type="submit" name="Send">
-</form>
-<div id="imgTest"></div>
-<script type='text/javascript'>
-  function encodeImageFileAsURL() {
+<head>
+  <title>ImgServ demo</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link href="//cdn.jsdelivr.net/foundation/6.2.1/foundation.min.css" rel='stylesheet' type='text/css'>
+<script src="/assets/fileform.js"></script>
 
-    var filesSelected = document.getElementById("inputFileToLoad").files;
-    if (filesSelected.length > 0) {
-      var fileToLoad = filesSelected[0];
+</head>
+<body style="padding:20px">
+<h1>Img serv</h1>
+This page shows an Img serv functions
+<div class="row">
+  <div class="small-6 small-centered columns">
+		<h2>Mutipart form</h2>
+		<form method="POST" action="/upload" enctype="multipart/form-data">
+			<input name=file type="file" />
+			<input type="submit" name="Send">
+		</form>
+	</div>
+</div>
 
-      var fileReader = new FileReader();
+<div class="row">
+  <div class="small-6 small-centered columns">
+		<h2>External image</h2>
+		<form method="GET" action="/upload">
+			<input type="text" name="url"/ placeholder="http://...">
+			<input type="submit" name="Send">
+		</form>
+	</div>
+</div>
 
-      fileReader.onload = function(fileLoadedEvent) {
-        var srcData = fileLoadedEvent.target.result; // <--- data: base64
+<div class="row">
+  <div class="small-6 small-centered columns">
+		<h2>JS with base64</h2>
+		<form method="POST" action="/upload">
+			<input id="inputFileToLoad" type="file"  onchange="encodeImageFileAsURL();" />
+			<textarea id="inputDataToSend" type="text" name="data" placeholder="data:image/png;base64,..."></textarea>
+			  <input type = "button" value="Send" class="button tiny edit success" onclick="save(this.form, '/upload')">
+		</form>
+		<div id="imgTest"></div>
+	</div>
+</div>
 
-        var newImage = document.createElement('img');
-        newImage.src = srcData;
-
-        document.getElementById("imgTest").innerHTML = newImage.outerHTML;
-        document.getElementById("inputDataToSend").value=srcData; //newImage.outerHTML;
-        alert("Converted Base64 version is " + document.getElementById("imgTest").innerHTML);
-        console.log("Converted Base64 version is " + document.getElementById("imgTest").innerHTML);
-      }
-      fileReader.readAsDataURL(fileToLoad);
-    }
-  }
-</script>
+</body>
+</html>

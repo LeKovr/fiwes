@@ -17,7 +17,7 @@
 * cmd/imgserv - Вебсервер
 * upload - прием и сохранение файла
 * resize - ресайз
-* view - показ
+* preview - показ
 
 ## Зависимости
 
@@ -43,10 +43,10 @@
 
 TODO
 
+* [x] refactoring
+* [x] html
+* [x] js (show preview?)
 * [ ] channels
-* [ ] html
-* [ ] js (show preview?)
-* [ ] refactoring
 * [ ] tests
 * [ ] docs
 
