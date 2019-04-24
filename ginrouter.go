@@ -11,7 +11,7 @@ import (
 // Config holds all config vars
 type Config struct {
 	Addr        string `long:"http_addr" default:"localhost:8080"  description:"Http listen address"`
-	UploadLimit int    `long:"upload_limit" default:"8" description:"Upload size limit (Mb)"`
+	UploadLimit int64  `long:"upload_limit" default:"8" description:"Upload size limit (Mb)"`
 	ImgDir      string `long:"img_dir" default:"data/img" description:"Image upload destination"`
 	ImgPath     string `long:"img_path" default:"/img" description:"Image URL path"`
 	UploadPath  string `long:"upload_path" default:"/upload" description:"Image upload URL path"`
