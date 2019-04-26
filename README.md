@@ -46,7 +46,7 @@ TODO
 * [x] refactoring
 * [x] html
 * [x] js (show preview?)
-* [ ] channels
+* [x] drop unsupported media
 * [ ] tests
 * [ ] docs
 

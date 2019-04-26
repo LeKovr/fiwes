@@ -12,7 +12,7 @@
 <h1>Img serv</h1>
 This page shows an Img serv functions
 <div class="row">
-  <div class="small-6 small-centered columns">
+  <div class="small-8 small-centered columns">
 		<h2>Mutipart form</h2>
 		<form method="POST" action="/upload" enctype="multipart/form-data">
 			<input name=file type="file" />
@@ -22,7 +22,7 @@ This page shows an Img serv functions
 </div>
 
 <div class="row">
-  <div class="small-6 small-centered columns">
+  <div class="small-8 small-centered columns">
 		<h2>External image</h2>
 		<form method="GET" action="/upload">
 			<input type="text" name="url"/ placeholder="http://...">
@@ -32,7 +32,7 @@ This page shows an Img serv functions
 </div>
 
 <div class="row">
-  <div class="small-6 small-centered columns">
+  <div class="small-8 small-centered columns">
 		<h2>JS with base64</h2>
 		<form method="POST" action="/upload">
 			<input id="inputFileToLoad" type="file"  onchange="encodeImageFileAsURL();" />

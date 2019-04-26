@@ -1,51 +1,45 @@
 //code from https://stackoverflow.com/a/23669825/5199825
-
-  function encodeImageFileAsURL() {
-
-    var filesSelected = document.getElementById("inputFileToLoad").files;
-    if (filesSelected.length > 0) {
-      var fileToLoad = filesSelected[0];
-
-      var fileReader = new FileReader();
-
-      fileReader.onload = function(fileLoadedEvent) {
-        var srcData = fileLoadedEvent.target.result; // <--- data: base64
-
-        var newImage = document.createElement('img');
-        newImage.src = srcData;
-
-        document.getElementById("imgTest").innerHTML = newImage.outerHTML;
-        document.getElementById("inputDataToSend").value=srcData; //newImage.outerHTML;
-         console.log("Converted Base64 version is " + document.getElementById("imgTest").innerHTML);
-      }
-      fileReader.readAsDataURL(fileToLoad);
+function encodeImageFileAsURL() {
+  var filesSelected = document.getElementById("inputFileToLoad").files;
+  if (filesSelected.length > 0) {
+    var fileToLoad = filesSelected[0];
+    var fileReader = new FileReader();
+    fileReader.onload = function(fileLoadedEvent) {
+      var srcData = fileLoadedEvent.target.result; // <--- data: base64
+      var newImage = document.createElement('img');
+      newImage.src = srcData;
+      document.getElementById("imgTest").innerHTML = newImage.outerHTML;
+      document.getElementById("inputDataToSend").value=srcData;
+      // console.log("Converted Base64 version is " + document.getElementById("imgTest").innerHTML);
     }
+    fileReader.readAsDataURL(fileToLoad);
   }
+}
 
 // save file
 function save(f, path) {
-    data= f.elements["data"].value;
-      div=  document.getElementById("imgTest")
-      div.innerHTML = '';
+  var data = f.elements["data"].value,
+      div  = document.getElementById("imgTest"),
+      xhr  = new XMLHttpRequest();
+  div.innerHTML = '';
   disable_form(f, true);
   console.log('Call');
-  var xhr = new XMLHttpRequest();
   xhr.open('POST', path, true);
-  xhr.onreadystatechange = function() { // (3)
+  xhr.onreadystatechange = function() {
     if (xhr.readyState != 4) return;
-    console.log('Done');
+      console.log('Done');
     if (xhr.status != 200) {
       console.log(xhr.status + ': ' + xhr.statusText);
+      div.innerHTML = xhr.statusText;
     } else {
       console.log('Result: ' + xhr.responseText);
       rv = JSON.parse(xhr.responseText);
-
-    var img = document.createElement('img'),
-        a = document.createElement('a');
-   img.src = rv.preview;
-    a.href = rv.file;
-    a.appendChild(img);
-        div.innerHTML = a.outerHTML;
+      var img = document.createElement('img'),
+          a   = document.createElement('a');
+      img.src = rv.preview;
+      a.href = rv.file;
+      a.appendChild(img);
+      div.innerHTML = a.outerHTML;
     }
     disable_form(f, false);
   }
