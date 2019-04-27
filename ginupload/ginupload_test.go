@@ -2,10 +2,10 @@ package ginupload
 
 import (
 	"github.com/gin-gonic/gin"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
-
 	"path"
 	"strings"
 	"testing"
@@ -68,7 +68,10 @@ func (ss *ServerSuite) TestHandleBase64() {
 func (ss *ServerSuite) TestHandleURL() {
 	testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		res.WriteHeader(http.StatusOK)
-		res.Write([]byte("body"))
+		_, err := res.Write([]byte("body"))
+		if err != nil {
+			log.Fatal(err)
+		}
 	}))
 	defer func() { testServer.Close() }()
 

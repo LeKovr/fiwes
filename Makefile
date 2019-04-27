@@ -44,26 +44,22 @@ DB_FILE ?= /data/counter.db
 .PHONY: all gen doc build-standalone coverage cov-html build test lint fmt vet vendor up down build-docker clean-docker
 
 ##
-## Available targets are:
+## Available make targets
 ##
 
 # default: show target list
 all: help
 
-doc:
-	@echo "Open http://localhost:6060/pkg/lekovr/exam"
-	@godoc -http=:6060
-
 # ------------------------------------------------------------------------------
+## Sources
 
-## generate embedded filesystems for tests
+## Generate mocks
 gen:
 	$(GO) generate ./...
 
-## Build cmds for scratch docker
+## Build app for scratch docker
 build-standalone: lint vet coverage
-	CGO_ENABLED=0 GOOS=linux go build -a ./cmd/server
-	CGO_ENABLED=0 GOOS=linux go build -a ./cmd/client
+	CGO_ENABLED=0 GOOS=linux go build -a .
 
 ## Build cmds with checks
 build-all: lint vet cov build
@@ -80,39 +76,28 @@ fmt:
 vet:
 	$(GO) vet ./...
 
-# ------------------------------------------------------------------------------
-
-## run linter
+## Run linters
 lint:
 	golint ./...
 	golangci-lint run ./...
 
-# ------------------------------------------------------------------------------
-
-## run tests and fill coverage.out
+## Run tests and fill coverage.out
 cov: coverage.out
 
 # internal target
 coverage.out: $(SOURCES)
 	$(GO) test -race -coverprofile=$@ -covermode=atomic -v ./...
 
-## open browser with coverage report
+## Open coverage report in browser
 cov-html: cov
 	$(GO) tool cover -html=coverage.out
 
+## Clean coverage report
 cov-clean:
 	rm -f coverage.*
 
-# Count lines of code (including tests)
-cloc: cloc.md
-
-cloc.md: $(SOURCES)
-	cloc --by-file --not-match-f='(_mock_test.go|.sql|ml|.md|Makefile|resource.go)$$' --md . > $@
-
-
 # ------------------------------------------------------------------------------
-# Docker part
-# ------------------------------------------------------------------------------
+## Docker
 
 ## Start service in container
 up:
@@ -176,12 +161,20 @@ dc: docker-compose.yml
   -w $$PWD \
   --env=golang_version=$(GO_VER) \
   --env=SERVER_PORT=$(SERVER_PORT) \
-  --env=DB_FILE=$(DB_FILE) \
   --env=DC_IMAGE=$(DC_IMAGE) \
   docker/compose:$(DC_VER) \
   -p $(PROJECT_NAME) \
   $(CMD)
 
-## Show available make targets
-help:
-	@grep -A 1 "^##" Makefile | less
+# ------------------------------------------------------------------------------
+## Misc
+
+## Count lines of code (including tests) and update LOC.md
+cloc: LOC.md
+
+LOC.md: $(SOURCES)
+	cloc --by-file --not-match-f='(_mock_test.go|.sql|ml|.md|file|resource.go)$$' --md . > $@
+
+## List Makefile targets
+help:  Makefile
+	@grep -A1 "^##" $< | grep -vE '^--$$' | sed -E '/^##/{N;s/^## (.+)\n(.+):(.*)/\t\2:\1/}' | column -t -s ':'

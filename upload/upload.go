@@ -33,16 +33,19 @@ type Config struct {
 // ErrNotImage returned when media type isn't supported by underlying image processing package
 var ErrNotImage = errors.New("media not supported")
 
+// Service holds upload service
 type Service struct {
 	Config   *Config
 	Log      loggers.Contextual
-	getLimit int64
+	getLimit int64 // store result of bytes to Mb calc
 }
 
+// New creates an Service object
 func New(cfg Config, log loggers.Contextual) *Service {
 	return &Service{&cfg, log, cfg.DownloadLimit << 20}
 }
 
+// HandleMultiPart stores image from multipart form
 func (srv Service) HandleMultiPart(form *multipart.Form) (*string, error) {
 	files, ok := form.File["file"]
 	if !ok || len(files) != 1 {
@@ -64,6 +67,7 @@ func (srv Service) HandleMultiPart(form *multipart.Form) (*string, error) {
 	return &name, nil
 }
 
+// HandleURL reveives and stores image from URL
 func (srv Service) HandleURL(url string) (*string, error) {
 	response, err := http.Get(url)
 	if err != nil {
@@ -82,6 +86,7 @@ func (srv Service) HandleURL(url string) (*string, error) {
 	return &name, nil
 }
 
+// HandleBase64 stores file received as base64 encoded string
 func (srv Service) HandleBase64(data, name string) (*string, error) {
 	prefixLen := strings.Index(data, ",")
 	if prefixLen < 5 {
@@ -100,13 +105,14 @@ func (srv Service) HandleBase64(data, name string) (*string, error) {
 	return &name, nil
 }
 
+// saveFile saves file from src and also creates preview for it
 func (srv Service) saveFile(src io.Reader, contentType, fileName string) (name string, err error) {
 	cfg := srv.Config
 
 	dst, err := createFile(cfg.UseRandomName, cfg.Dir, contentType, fileName)
 	defer func() {
-		// remove image random dir if exists on error
 		if err != nil {
+			// remove image random dir if was created
 			if path.Dir(dst.Name()) != cfg.Dir {
 				e := os.Remove(path.Dir(dst.Name()))
 				if e != nil {
@@ -119,8 +125,8 @@ func (srv Service) saveFile(src io.Reader, contentType, fileName string) (name s
 		return
 	}
 	defer func() {
-		// remove image if exists on error
 		if err != nil {
+			// remove image if exists
 			e := os.Remove(dst.Name())
 			if e != nil {
 				srv.Log.Errorf("Error removing file: ", e)
@@ -136,6 +142,7 @@ func (srv Service) saveFile(src io.Reader, contentType, fileName string) (name s
 		return
 	}
 
+	// create preview
 	var img image.Image
 	img, err = imaging.Open(srcName)
 	if err != nil {
@@ -144,22 +151,22 @@ func (srv Service) saveFile(src io.Reader, contentType, fileName string) (name s
 		return
 	}
 
-	imgPreview := imaging.Resize(img, cfg.PreviewWidth, cfg.PreviewHeight, imaging.Lanczos)
 	name = strings.TrimPrefix(srcName, cfg.Dir)
-	preview := filepath.Join(cfg.PreviewDir, name)
+	previewName := filepath.Join(cfg.PreviewDir, name)
+	previewImage := imaging.Resize(img, cfg.PreviewWidth, cfg.PreviewHeight, imaging.Lanczos)
 
-	if path.Dir(preview) != cfg.PreviewDir {
+	if path.Dir(previewName) != cfg.PreviewDir {
 		// name contains random dir, create it
-		err = os.MkdirAll(path.Dir(preview), os.ModePerm)
+		err = os.MkdirAll(path.Dir(previewName), os.ModePerm)
 		if err != nil {
 			return
 		}
 	}
 	defer func() {
 		if err != nil {
-			// remove preview random dir if created on error
-			if path.Dir(preview) != cfg.PreviewDir {
-				e := os.Remove(path.Dir(preview))
+			// remove preview random dir if created
+			if path.Dir(previewName) != cfg.PreviewDir {
+				e := os.Remove(path.Dir(previewName))
 				if e != nil {
 					srv.Log.Errorf("Error removing preview dir: ", e)
 				}
@@ -167,11 +174,12 @@ func (srv Service) saveFile(src io.Reader, contentType, fileName string) (name s
 		}
 	}()
 
-	err = imaging.Save(imgPreview, preview)
-	srv.Log.Infof("Saved %d of %s (%s)", cnt, srcName, name)
+	err = imaging.Save(previewImage, previewName)
+	srv.Log.Infof("Saved %d of %s", cnt, srcName)
 	return
 }
 
+// contentTypeExt returns first item from extension list for given content type
 func contentTypeExt(contentType string) (ext string, err error) {
 	var exts []string
 	exts, err = mime.ExtensionsByType(contentType)
@@ -186,6 +194,7 @@ func contentTypeExt(contentType string) (ext string, err error) {
 	return
 }
 
+// createFile creates and return handle of unique file
 func createFile(useRandom bool, dir, contentType, fileName string) (dst *os.File, err error) {
 	if useRandom {
 		// Generate random filename with original ext

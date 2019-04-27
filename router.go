@@ -18,6 +18,7 @@ import (
 type Config struct {
 	Addr        string `long:"http_addr" default:"localhost:8080"  description:"Http listen address"`
 	UploadLimit int64  `long:"upload_limit" default:"8" description:"Upload size limit (Mb)"`
+	ShowHTML    bool   `long:"html" description:"Show html index page"`
 
 	Img ginupload.Config `group:"Image upload Options" namespace:"img"`
 }
@@ -25,7 +26,7 @@ type Config struct {
 // ErrGotHelp returned after showing requested help
 var ErrGotHelp = errors.New("help printed")
 
-// setupConfig loads flags from os or args
+// setupConfig loads flags from args (if given) or command flags and ENV otherwise
 func setupConfig(args ...string) (*Config, error) {
 	cfg := &Config{}
 	p := flags.NewParser(cfg, flags.Default)
@@ -57,9 +58,11 @@ func setupLog() loggers.Contextual {
 // setupRouter creates gin router
 func setupRouter(cfg *Config, log loggers.Contextual) *gin.Engine {
 	router := gin.Default()
-	router.Static("/assets", "./assets")
-	router.StaticFile("/favicon.ico", "./assets/favicon.ico")
-	router.StaticFile("/", "./assets/index.html")
+	if cfg.ShowHTML {
+		router.Static("/static", "./assets/static")
+		router.StaticFile("/favicon.ico", "./assets/favicon.ico")
+		router.StaticFile("/", "./assets/index.html")
+	}
 	router.StaticFS(cfg.Img.Path, http.Dir(cfg.Img.Dir))
 	router.StaticFS(cfg.Img.PreviewPath, http.Dir(cfg.Img.PreviewDir))
 

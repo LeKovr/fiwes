@@ -9,7 +9,7 @@ import (
 var version = "0.0-dev"
 
 func main() {
-	log.Printf("imgserv v %s. Image server", version)
+	log.Printf("fiwes %s. File web storage server", version)
 	cfg, err := setupConfig()
 	if err != nil {
 		if err == ErrGotHelp {

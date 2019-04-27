@@ -1,3 +1,4 @@
+// Package ginupload implements gin handlers for file upload processing
 package ginupload
 
 //go:generate moq -out upload_moq_test.go . Uploader
@@ -21,17 +22,20 @@ type Config struct {
 	PreviewPath string `long:"preview_path" default:"/preview" description:"Preview image URL path"`
 }
 
+// Uploader holgs methods of underlying upload package
 type Uploader interface {
 	HandleMultiPart(form *multipart.Form) (*string, error)
 	HandleURL(url string) (*string, error)
 	HandleBase64(data, name string) (*string, error)
 }
 
+// Service holds ginupload service
 type Service struct {
 	Config Config
 	up     Uploader
 }
 
+// New creates an Service object
 func New(cfg Config, log loggers.Contextual, upl Uploader) *Service {
 	if upl == nil {
 		upl = upload.New(cfg.Config, log)
@@ -39,6 +43,7 @@ func New(cfg Config, log loggers.Contextual, upl Uploader) *Service {
 	return &Service{cfg, upl}
 }
 
+// HandleMultiPart handles a file received as multipart form
 func (srv Service) HandleMultiPart(c *gin.Context) {
 	form, err := c.MultipartForm()
 	if err != nil {
@@ -53,6 +58,7 @@ func (srv Service) HandleMultiPart(c *gin.Context) {
 	c.Redirect(http.StatusFound, srv.Config.PreviewPath+*name)
 }
 
+// HandleURL handles an image from url field
 func (srv Service) HandleURL(c *gin.Context) {
 	url := c.Query("url")
 	name, err := srv.up.HandleURL(url)
@@ -86,6 +92,7 @@ func (srv Service) HandleBase64(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"file": cfg.Path + *name, "preview": cfg.PreviewPath + *name})
 }
 
+// logError fills response with error message
 func logError(c *gin.Context, e error) {
 	log.Printf("ERR: %s", e)
 	if e == upload.ErrNotImage {
