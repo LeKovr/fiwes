@@ -113,7 +113,7 @@ func (srv Service) saveFile(src io.Reader, contentType, fileName string) (name s
 	defer func() {
 		if err != nil {
 			// remove image random dir if was created
-			if path.Dir(dst.Name()) != cfg.Dir {
+			if dst != nil && path.Dir(dst.Name()) != cfg.Dir {
 				e := os.Remove(path.Dir(dst.Name()))
 				if e != nil {
 					srv.Log.Errorf("Error removing file: ", e)
@@ -155,12 +155,10 @@ func (srv Service) saveFile(src io.Reader, contentType, fileName string) (name s
 	previewName := filepath.Join(cfg.PreviewDir, name)
 	previewImage := imaging.Resize(img, cfg.PreviewWidth, cfg.PreviewHeight, imaging.Lanczos)
 
-	if path.Dir(previewName) != cfg.PreviewDir {
-		// name contains random dir, create it
-		err = os.MkdirAll(path.Dir(previewName), os.ModePerm)
-		if err != nil {
-			return
-		}
+	// name may contains random dir, ensure dir exists anyway
+	err = os.MkdirAll(path.Dir(previewName), 0700) //os.ModePerm)
+	if err != nil {
+		return
 	}
 	defer func() {
 		if err != nil {
@@ -174,7 +172,7 @@ func (srv Service) saveFile(src io.Reader, contentType, fileName string) (name s
 		}
 	}()
 
-	err = imaging.Save(previewImage, previewName)
+	err = imaging.Save(previewImage, previewName) // file mode allows read for all
 	srv.Log.Infof("Saved %d of %s", cnt, srcName)
 	return
 }
@@ -196,6 +194,13 @@ func contentTypeExt(contentType string) (ext string, err error) {
 
 // createFile creates and return handle of unique file
 func createFile(useRandom bool, dir, contentType, fileName string) (dst *os.File, err error) {
+
+	// Ensure dir exists
+	err = os.MkdirAll(dir, os.ModePerm)
+	if err != nil {
+		return
+	}
+
 	if useRandom {
 		// Generate random filename with original ext
 		ext := path.Ext(fileName)

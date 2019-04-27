@@ -1,4 +1,4 @@
-module imgserv
+module fiwes
 
 go 1.12
 

@@ -19,13 +19,13 @@ PROJECT_NAME  ?= $(shell basename $$PWD)
 DC_SERVICE    ?= app
 
 # Generated docker image
-DC_IMAGE      ?= counter
+DC_IMAGE      ?= $(PROJECT_NAME)
 
 # docker/compose version
-DC_VER        ?= 1.14.0
+DC_VER        ?= 1.23.2
 
 # golang image version
-GO_VER        ?= latest
+GO_VER        ?= 1.12.4
 
 # docker app for change inside containers
 DOCKER_BIN    ?= docker
@@ -34,10 +34,7 @@ DOCKER_BIN    ?= docker
 # App config
 
 # Docker container port
-SERVER_PORT   ?= 50051
-
-# Database file in mounted volume
-DB_FILE ?= /data/counter.db
+SERVER_PORT   ?= 8080
 
 # -----------------------------------------------------------------------------
 
@@ -53,20 +50,24 @@ all: help
 # ------------------------------------------------------------------------------
 ## Sources
 
+## Run from sources
+run:
+	$(GO) run . --html
+
+## Build app with checks
+build-all: lint lint-more vet cov build
+
+## Build app
+build: 
+	go build -ldflags "-X main.version=$(VERSION)" .
+
+## Build app used in docker from scratch
+build-standalone: cov vet lint lint-more
+	CGO_ENABLED=0 GOOS=linux go build -ldflags "-X main.version=`git describe --tags`" -installsuffix 'static' -a .
+
 ## Generate mocks
 gen:
 	$(GO) generate ./...
-
-## Build app for scratch docker
-build-standalone: lint vet coverage
-	CGO_ENABLED=0 GOOS=linux go build -a .
-
-## Build cmds with checks
-build-all: lint vet cov build
-
-## Build cmds
-build: 
-	go build -ldflags "-X main.version=$(VERSION)" .
 
 ## Format go sources
 fmt:
@@ -76,9 +77,12 @@ fmt:
 vet:
 	$(GO) vet ./...
 
-## Run linters
+## Run linter
 lint:
 	golint ./...
+
+## Run more linters
+lint-more:
 	golangci-lint run ./...
 
 ## Run tests and fill coverage.out
@@ -86,7 +90,9 @@ cov: coverage.out
 
 # internal target
 coverage.out: $(SOURCES)
-	$(GO) test -race -coverprofile=$@ -covermode=atomic -v ./...
+	GIN_MODE=release $(GO) test -test.v -test.race -coverprofile=$@ -covermode=atomic ./...
+
+#	GIN_MODE=release $(GO) test -race -coverprofile=$@ -covermode=atomic -v ./...
 
 ## Open coverage report in browser
 cov-html: cov
@@ -99,8 +105,12 @@ cov-clean:
 # ------------------------------------------------------------------------------
 ## Docker
 
+# internal target
+datadir:
+	mkdir -p -m 777 var/data/{img,preview}
+
 ## Start service in container
-up:
+up: datadir
 up: CMD=up -d $(DC_SERVICE)
 up: dc
 
@@ -111,6 +121,10 @@ down: dc
 
 ## Build docker image
 build-docker:
+	@$(MAKE) -s dc CMD="build --force-rm $(DC_SERVICE)"
+
+## Build docker image ignoring cache, for timings etc
+build-docker-nc:
 	@$(MAKE) -s dc CMD="build --no-cache --force-rm $(DC_SERVICE)"
 
 # Remove docker image & temp files
@@ -159,12 +173,13 @@ dc: docker-compose.yml
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v $$PWD:$$PWD \
   -w $$PWD \
-  --env=golang_version=$(GO_VER) \
+  --env=GO_VERSION=$(GO_VER) \
   --env=SERVER_PORT=$(SERVER_PORT) \
   --env=DC_IMAGE=$(DC_IMAGE) \
   docker/compose:$(DC_VER) \
   -p $(PROJECT_NAME) \
   $(CMD)
+
 
 # ------------------------------------------------------------------------------
 ## Misc

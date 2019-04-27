@@ -1,6 +1,7 @@
 # ---> Go
 # Binaries for programs and plugins
 *.exe
+fiwes
 
 # Test binary, build with `go test -c`
 *.test
@@ -10,6 +11,7 @@
 
 # img store
 data
+var
 
 # tmp tests
 test*
