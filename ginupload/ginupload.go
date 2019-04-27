@@ -11,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gopkg.in/birkirb/loggers.v1"
 
-	"imgserv/upload"
+	"fiwes/upload"
 )
 
 // Config holds all config vars
@@ -22,7 +22,7 @@ type Config struct {
 	PreviewPath string `long:"preview_path" default:"/preview" description:"Preview image URL path"`
 }
 
-// Uploader holgs methods of underlying upload package
+// Uploader holds methods of underlying upload package
 type Uploader interface {
 	HandleMultiPart(form *multipart.Form) (*string, error)
 	HandleURL(url string) (*string, error)
