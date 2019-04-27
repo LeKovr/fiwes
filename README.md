@@ -38,7 +38,7 @@ Image upload Options:
       --img.preview_dir=    Preview image destination (default: data/preview)
       --img.preview_width=  Preview image width (default: 100)
       --img.preview_heigth= Preview image heigth (default: 100)
-      --img.random_name     Don't keep uploaded image filename
+      --img.random_name     Do not keep uploaded image filename
       --img.path=           Image URL path (default: /img)
       --img.upload_path=    Image upload URL path (default: /upload)
       --img.preview_path=   Preview image URL path (default: /preview)
@@ -51,9 +51,10 @@ Help Options:
 
 Образ docker создается "from scratch" и для запуска контейнера используются следующие файлы хост-системы:
 * /etc/timezone, /etc/localtime - чтобы время в логах соответствовало серверному
-* /etc/mime.types - для задания соответствий Content-Type расширениям (см [mime](https://golang.org/pkg/mime/#TypeByExtension))
 
-Все операции с docker производятся через контейнер docker-compose
+Файл /etc/mime.types копируется в контейнер при сборке для задания соответствий Content-Type расширениям (см [mime](https://golang.org/pkg/mime/#TypeByExtension)).
+
+Все операции с docker производятся через контейнер docker-compose.
 
 Приложение запускается в контейнере под пользователем nobody:nogroup и сохраняет файлы в `./var/data`. Чтобы создание файлов было доступно, перед стартом контейнера выполняется команда `mkdir -p -m 777 var/data/{img,preview}`.
 
@@ -104,14 +105,6 @@ $ make
   * https://github.com/aldor007/mort
   * https://github.com/thoas/picfit
 
-## Что учесть
-
-Вариант ответа - редирект на адрес картинки.
-Для GET тоже - чтобы рефреш не повторял скачивание
-по redirect url можно получить id изображения, отрезав префикс
-
-Предусмотреть простоту замены библиотеки ресайза
-
 ### TODO
 
 * [x] refactoring
@@ -126,6 +119,6 @@ $ make
 
 ## Уточнения ТЗ
 
-* не задан список форматов изображений (может, .svg?), это нужно при выборе пакета ресайза. Без этого уточнения принимает, что список форматов аналогичен списку выбранного пакета ресайза
-* возвращаем только изображение (размер заранее известен), не потоки
+* Т.к. список форматов изображений не задан (может, .svg?), принимаем, что список форматов аналогичен списку поддерживаемых выбранным пакетом ресайза ([imaging](https://github.com/disintegration/imaging))
+* В случаях, когда запрос не в JSON, сервер отвечает редиректом на превью. Для GET тоже, чтобы рефреш не повторял скачивание. По redirect url можно получить id изображения, отрезав префикс (заменив `/preview/` на `/img/`)
 

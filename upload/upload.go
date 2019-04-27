@@ -27,7 +27,7 @@ type Config struct {
 	PreviewDir    string `long:"preview_dir" default:"data/preview" description:"Preview image destination"`
 	PreviewWidth  int    `long:"preview_width" default:"100" description:"Preview image width"`
 	PreviewHeight int    `long:"preview_heigth" default:"100" description:"Preview image heigth"`
-	UseRandomName bool   `long:"random_name" description:"Don't keep uploaded image filename"`
+	UseRandomName bool   `long:"random_name" description:"Do not keep uploaded image filename"`
 }
 
 // ErrNotImage returned when media type isn't supported by underlying image processing package
