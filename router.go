@@ -22,8 +22,10 @@ type Config struct {
 	Img ginupload.Config `group:"Image upload Options" namespace:"img"`
 }
 
+// ErrGotHelp returned after showing requested help
 var ErrGotHelp = errors.New("help printed")
 
+// setupConfig loads flags from os or args
 func setupConfig(args ...string) (*Config, error) {
 	cfg := &Config{}
 	p := flags.NewParser(cfg, flags.Default)
@@ -36,25 +38,25 @@ func setupConfig(args ...string) (*Config, error) {
 	if err != nil {
 		if e, ok := err.(*flags.Error); ok && e.Type == flags.ErrHelp {
 			return nil, ErrGotHelp
-		} else {
-			return nil, err // error message printed already
 		}
+		return nil, err // error message printed already
 	}
 	return cfg, nil
 }
 
+// setupLog creates logger
 func setupLog() loggers.Contextual {
 	l := logrus.New()
 	if gin.IsDebugging() {
 		l.SetLevel(logrus.DebugLevel)
 		l.SetReportCaller(true)
 	}
-	return mapper.NewLogger(l)
+	return &mapper.Logger{Logger: l} // Same as mapper.NewLogger(l) but without info log message
 }
 
+// setupRouter creates gin router
 func setupRouter(cfg *Config, log loggers.Contextual) *gin.Engine {
 	router := gin.Default()
-
 	router.Static("/assets", "./assets")
 	router.StaticFile("/favicon.ico", "./assets/favicon.ico")
 	router.StaticFile("/", "./assets/index.html")
@@ -64,17 +66,17 @@ func setupRouter(cfg *Config, log loggers.Contextual) *gin.Engine {
 	// Set a lower memory limit for multipart forms (default is 32 MiB)
 	router.MaxMultipartMemory = cfg.UploadLimit << 20 // 8 MiB
 
-	gup := ginupload.New(cfg.Img, log)
+	gup := ginupload.New(cfg.Img, log, nil)
 
 	router.POST(cfg.Img.UploadPath, func(c *gin.Context) {
 		if c.ContentType() == "multipart/form-data" {
-			gup.MultiPart(c)
+			gup.HandleMultiPart(c)
 		} else {
-			gup.Base64(c)
+			gup.HandleBase64(c)
 		}
 	})
 	router.GET(cfg.Img.UploadPath, func(c *gin.Context) {
-		gup.External(c)
+		gup.HandleURL(c)
 	})
 	return router
 }

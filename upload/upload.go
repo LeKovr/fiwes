@@ -1,3 +1,4 @@
+// Package upload implements image upload handlers.
 package upload
 
 import (
@@ -11,6 +12,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -25,41 +27,44 @@ type Config struct {
 	PreviewDir    string `long:"preview_dir" default:"data/preview" description:"Preview image destination"`
 	PreviewWidth  int    `long:"preview_width" default:"100" description:"Preview image width"`
 	PreviewHeight int    `long:"preview_heigth" default:"100" description:"Preview image heigth"`
-	KeepImageName bool   `long:"keep_name" description:"Keep uploaded image filename if given and correct"`
+	UseRandomName bool   `long:"random_name" description:"Don't keep uploaded image filename"`
 }
 
+// ErrNotImage returned when media type isn't supported by underlying image processing package
 var ErrNotImage = errors.New("media not supported")
 
-type Uploader struct {
+type Service struct {
 	Config   *Config
 	Log      loggers.Contextual
 	getLimit int64
 }
 
-func New(cfg Config, log loggers.Contextual) *Uploader {
-	return &Uploader{&cfg, log, cfg.DownloadLimit << 20}
+func New(cfg Config, log loggers.Contextual) *Service {
+	return &Service{&cfg, log, cfg.DownloadLimit << 20}
 }
 
-func (u Uploader) MultiPart(form *multipart.Form) (*string, error) {
+func (srv Service) HandleMultiPart(form *multipart.Form) (*string, error) {
 	files, ok := form.File["file"]
 	if !ok || len(files) != 1 {
 		return nil, errors.New("field 'file' is empty")
 	}
 	file := files[0]
-	contentType := file.Header.Get("Content-Type")
 	src, err := file.Open()
 	if err != nil {
 		return nil, err
 	}
 	defer src.Close()
-	name, err := u.saveFile(contentType, src)
+
+	contentType := file.Header.Get("Content-Type")
+	fileName := filepath.Base(file.Filename)
+	name, err := srv.saveFile(src, contentType, fileName)
 	if err != nil {
 		return nil, err
 	}
 	return &name, nil
 }
 
-func (u Uploader) URL(url string) (*string, error) {
+func (srv Service) HandleURL(url string) (*string, error) {
 	response, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -67,17 +72,17 @@ func (u Uploader) URL(url string) (*string, error) {
 	if response.StatusCode != http.StatusOK {
 		return nil, errors.New("Image download failed: " + response.Status)
 	}
-	src := io.LimitReader(response.Body, u.getLimit)
+	src := io.LimitReader(response.Body, srv.getLimit)
 	contentType := response.Header.Get("Content-Type")
-	name, err := u.saveFile(contentType, src)
+	fileName := path.Base(response.Request.URL.Path)
+	name, err := srv.saveFile(src, contentType, fileName)
 	if err != nil {
 		return nil, err
 	}
 	return &name, nil
 }
 
-func (u Uploader) Base64(buf []byte) (*string, error) {
-	data := string(buf)
+func (srv Service) HandleBase64(data, name string) (*string, error) {
 	prefixLen := strings.Index(data, ",")
 	if prefixLen < 5 {
 		return nil, errors.New("incorrect data format")
@@ -88,15 +93,86 @@ func (u Uploader) Base64(buf []byte) (*string, error) {
 		return nil, err
 	}
 	src := bytes.NewReader(file)
-	name, err := u.saveFile(contentType, src)
+	name, err = srv.saveFile(src, contentType, name)
 	if err != nil {
 		return nil, err
 	}
 	return &name, nil
 }
 
-func (u Uploader) saveFile(contentType string, src io.Reader) (name string, err error) {
-	cfg := u.Config
+func (srv Service) saveFile(src io.Reader, contentType, fileName string) (name string, err error) {
+	cfg := srv.Config
+
+	dst, err := createFile(cfg.UseRandomName, cfg.Dir, contentType, fileName)
+	defer func() {
+		// remove image random dir if exists on error
+		if err != nil {
+			if path.Dir(dst.Name()) != cfg.Dir {
+				e := os.Remove(path.Dir(dst.Name()))
+				if e != nil {
+					srv.Log.Errorf("Error removing file: ", e)
+				}
+			}
+		}
+	}()
+	if err != nil {
+		return
+	}
+	defer func() {
+		// remove image if exists on error
+		if err != nil {
+			e := os.Remove(dst.Name())
+			if e != nil {
+				srv.Log.Errorf("Error removing file: ", e)
+			}
+		}
+	}()
+
+	var cnt int64
+	srcName := dst.Name()
+	cnt, err = io.Copy(dst, src)
+	dst.Close()
+	if err != nil {
+		return
+	}
+
+	var img image.Image
+	img, err = imaging.Open(srcName)
+	if err != nil {
+		srv.Log.Warnf("Open error: %v", err)
+		err = ErrNotImage
+		return
+	}
+
+	imgPreview := imaging.Resize(img, cfg.PreviewWidth, cfg.PreviewHeight, imaging.Lanczos)
+	name = strings.TrimPrefix(srcName, cfg.Dir)
+	preview := filepath.Join(cfg.PreviewDir, name)
+
+	if path.Dir(preview) != cfg.PreviewDir {
+		// name contains random dir, create it
+		err = os.MkdirAll(path.Dir(preview), os.ModePerm)
+		if err != nil {
+			return
+		}
+	}
+	defer func() {
+		if err != nil {
+			// remove preview random dir if created on error
+			if path.Dir(preview) != cfg.PreviewDir {
+				e := os.Remove(path.Dir(preview))
+				if e != nil {
+					srv.Log.Errorf("Error removing preview dir: ", e)
+				}
+			}
+		}
+	}()
+
+	err = imaging.Save(imgPreview, preview)
+	srv.Log.Infof("Saved %d of %s (%s)", cnt, srcName, name)
+	return
+}
+
+func contentTypeExt(contentType string) (ext string, err error) {
 	var exts []string
 	exts, err = mime.ExtensionsByType(contentType)
 	if err != nil {
@@ -106,41 +182,46 @@ func (u Uploader) saveFile(contentType string, src io.Reader) (name string, err 
 		err = ErrNotImage
 		return
 	}
-	var dst *os.File
-	dst, err = ioutil.TempFile(cfg.Dir, "*"+exts[0])
-	if err != nil {
-		return
-	}
-	defer func() {
-		if err != nil {
-			e := os.Remove(dst.Name())
-			if e != nil {
-				u.Log.Errorf("Error removing file: ", e)
+	ext = exts[0]
+	return
+}
+
+func createFile(useRandom bool, dir, contentType, fileName string) (dst *os.File, err error) {
+	if useRandom {
+		// Generate random filename with original ext
+		ext := path.Ext(fileName)
+		if ext == "" {
+			ext, err = contentTypeExt(contentType)
+			if err != nil {
+				return
 			}
 		}
-	}()
-
-	var cnt int64
-	cnt, err = io.Copy(dst, src)
-	dst.Close()
-	if err != nil {
+		// create & lock file
+		dst, err = ioutil.TempFile(dir, "*"+ext)
 		return
 	}
-
-	path := dst.Name()
-	var img image.Image
-	img, err = imaging.Open(path)
-	if err != nil {
-		u.Log.Warnf("Open error: %v", err)
-		err = ErrNotImage
-		return
+	// try to keep original filename
+	file := filepath.Join(dir, fileName)
+	ext := path.Ext(fileName)
+	if ext == "" {
+		// add ext from content type
+		ext, err = contentTypeExt(contentType)
+		if err != nil {
+			return
+		}
+		file += ext
 	}
-
-	imgPreview := imaging.Resize(img, cfg.PreviewWidth, cfg.PreviewHeight, imaging.Lanczos)
-
-	name = filepath.Base(path)
-	preview := filepath.Join(cfg.PreviewDir, name)
-	err = imaging.Save(imgPreview, preview)
-	u.Log.Infof("Saved %d of %s", cnt, path)
+	// Check if fileName is already used
+	if _, err = os.Stat(file); err == nil {
+		// file exists, add random dir
+		var outDir string
+		outDir, err = ioutil.TempDir(dir, "")
+		if err != nil {
+			return
+		}
+		file = filepath.Join(outDir, fileName)
+	}
+	// create & lock file
+	dst, err = os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0600)
 	return
 }

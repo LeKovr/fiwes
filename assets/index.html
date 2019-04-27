@@ -36,6 +36,7 @@ This page shows an Img serv functions
 		<h2>JS with base64</h2>
 		<form method="POST" action="/upload">
 			<input id="inputFileToLoad" type="file"  onchange="encodeImageFileAsURL();" />
+			<input id="inputDataName" type="hidden" name="name"/>
 			<textarea id="inputDataToSend" type="text" name="data" placeholder="data:image/png;base64,..."></textarea>
 			  <input type = "button" value="Send" class="button tiny edit success" onclick="save(this.form, '/upload')">
 		</form>

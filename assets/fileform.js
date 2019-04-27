@@ -3,6 +3,7 @@ function encodeImageFileAsURL() {
   var filesSelected = document.getElementById("inputFileToLoad").files;
   if (filesSelected.length > 0) {
     var fileToLoad = filesSelected[0];
+    document.getElementById("inputDataName").value=fileToLoad.name;
     var fileReader = new FileReader();
     fileReader.onload = function(fileLoadedEvent) {
       var srcData = fileLoadedEvent.target.result; // <--- data: base64
@@ -18,13 +19,17 @@ function encodeImageFileAsURL() {
 
 // save file
 function save(f, path) {
-  var data = f.elements["data"].value,
+  var data = {
+        name: f.elements["name"].value,
+        data: f.elements["data"].value
+      },
       div  = document.getElementById("imgTest"),
       xhr  = new XMLHttpRequest();
   div.innerHTML = '';
   disable_form(f, true);
   console.log('Call');
   xhr.open('POST', path, true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
   xhr.onreadystatechange = function() {
     if (xhr.readyState != 4) return;
       console.log('Done');
@@ -43,7 +48,7 @@ function save(f, path) {
     }
     disable_form(f, false);
   }
-  xhr.send(data);
+  xhr.send(JSON.stringify(data));
 }
 
 // code from https://gist.github.com/Peacegrove/5534309

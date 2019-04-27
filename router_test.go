@@ -34,6 +34,27 @@ func TestSetupLog(t *testing.T) {
 	assert.NotNil(t, l)
 }
 
+func TestMultiPart(t *testing.T) {
+	cfg := &Config{Img: ginupload.Config{Path: "/img", PreviewPath: "/preview", UploadPath: "/upload"}}
+
+	l, hook := test.NewNullLogger()
+	//ss.hook = hook
+	l.SetLevel(logrus.DebugLevel)
+	log := mapper.NewLogger(l)
+	hook.Reset()
+
+	router := setupRouter(cfg, log)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/upload", strings.NewReader(`fake data`))
+	req.Header.Set("Content-Type", "multipart/form-data")
+
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, "Error: no multipart boundary param in Content-Type", w.Body.String())
+}
+
 func TestBase64(t *testing.T) {
 	cfg := &Config{Img: ginupload.Config{Path: "/img", PreviewPath: "/preview", UploadPath: "/upload"}}
 
@@ -46,14 +67,14 @@ func TestBase64(t *testing.T) {
 	router := setupRouter(cfg, log)
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/upload", strings.NewReader("data:image/png;base64,iVBORw0K"))
+	req, _ := http.NewRequest("POST", "/upload", strings.NewReader(`{"data":"data:image/png;base64,iVBORw0K","name":"file.ext"}`))
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, 415, w.Code)
 	assert.Equal(t, "Unsupported media type", w.Body.String())
 }
 
-func TestExternal(t *testing.T) {
+func TestURL(t *testing.T) {
 	cfg := &Config{Img: ginupload.Config{Path: "/img", PreviewPath: "/preview", UploadPath: "/upload"}}
 
 	l, hook := test.NewNullLogger()

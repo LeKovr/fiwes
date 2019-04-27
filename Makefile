@@ -6,10 +6,8 @@ SHELL          = /bin/bash
 # Build config
 
 GO            ?= go
-# not supported in BusyBox v1.26.2
-LIB_SOURCES    = $(shell find lib -maxdepth 3 -mindepth 1 -name *.go  -printf '%p\n')
-SOURCES        = counter/*.go $(LIB_SOURCES)
-LIBS           = $(shell $(GO) list ./... | grep -vE '/(vendor|iface|proto|cmd)/')
+VERSION       ?= $(shell git describe --tags)
+SOURCES       ?= *.go */*.go
 
 # -----------------------------------------------------------------------------
 # Docker image config
@@ -52,13 +50,15 @@ DB_FILE ?= /data/counter.db
 # default: show target list
 all: help
 
-## Generate protobuf & kvstore mock
-gen:
-	$(GO) generate ./lib/proto/... ./lib/iface/kvstore/...
-
 doc:
 	@echo "Open http://localhost:6060/pkg/lekovr/exam"
 	@godoc -http=:6060
+
+# ------------------------------------------------------------------------------
+
+## generate embedded filesystems for tests
+gen:
+	$(GO) generate ./...
 
 ## Build cmds for scratch docker
 build-standalone: lint vet coverage
@@ -66,51 +66,49 @@ build-standalone: lint vet coverage
 	CGO_ENABLED=0 GOOS=linux go build -a ./cmd/client
 
 ## Build cmds with checks
-build-all: lint vet coverage build
+build-all: lint vet cov build
 
 ## Build cmds
-build: client server
-
-## Build client command
-client: cmd/client/*.go $(SOURCES)
-	$(GO) build ./cmd/$@
-
-## Build server command
-server: cmd/server/*.go $(SOURCES)
-	$(GO) build ./cmd/$@
-
-## Show coverage
-coverage:
-	@for f in $(LIBS) ; do pushd ../../$$f > /dev/null ; $(GO) test -coverprofile=coverage.out ; popd > /dev/null ; done
-
-## Show package coverage in html (make cov-html PKG=counter)
-cov-html:
-	pushd $(PKG) ; $(GO) tool cover -html=coverage.out ; popd
-
-## Run tests
-test:
-	$(GO) test $(LIBS)
-
-## Run lint
-lint:
-	golint lib/... | grep -v "lib/proto" || true
-	golint counter/...
-	golint cmd/...
+build: 
+	go build -ldflags "-X main.version=$(VERSION)" .
 
 ## Format go sources
 fmt:
-	$(GO) fmt ./lib/... && $(GO) fmt ./counter/... && $(GO) fmt ./cmd/...
+	$(GO) fmt ./...
 
 ## Run vet
 vet:
-	$(GO) vet ./lib/... && $(GO) vet ./counter/... && $(GO) vet ./cmd/...
+	$(GO) vet ./...
 
-## Install vendor deps
-vendor:
-	@echo "*** $@:glide ***"
-	which glide > /dev/null || curl https://glide.sh/get | sh
-	@echo "*** $@ ***"
-	glide install
+# ------------------------------------------------------------------------------
+
+## run linter
+lint:
+	golint ./...
+	golangci-lint run ./...
+
+# ------------------------------------------------------------------------------
+
+## run tests and fill coverage.out
+cov: coverage.out
+
+# internal target
+coverage.out: $(SOURCES)
+	$(GO) test -race -coverprofile=$@ -covermode=atomic -v ./...
+
+## open browser with coverage report
+cov-html: cov
+	$(GO) tool cover -html=coverage.out
+
+cov-clean:
+	rm -f coverage.*
+
+# Count lines of code (including tests)
+cloc: cloc.md
+
+cloc.md: $(SOURCES)
+	cloc --by-file --not-match-f='(_mock_test.go|.sql|ml|.md|Makefile|resource.go)$$' --md . > $@
+
 
 # ------------------------------------------------------------------------------
 # Docker part
