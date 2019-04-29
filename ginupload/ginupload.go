@@ -4,7 +4,6 @@ package ginupload
 //go:generate moq -out upload_moq_test.go . Uploader
 
 import (
-	"log"
 	"mime/multipart"
 	"net/http"
 
@@ -94,10 +93,9 @@ func (srv Service) HandleBase64(c *gin.Context) {
 
 // logError fills response with error message
 func logError(c *gin.Context, e error) {
-	log.Printf("ERR: %s", e)
-	if e == upload.ErrNotImage {
-		c.String(http.StatusUnsupportedMediaType, "Unsupported media type")
+	if eHTTP, ok := e.(interface{ Status() int }); ok {
+		c.String(eHTTP.Status(), e.Error())
 	} else {
-		c.String(http.StatusInternalServerError, "Error: %s", e.Error())
+		c.String(http.StatusInternalServerError, e.Error())
 	}
 }

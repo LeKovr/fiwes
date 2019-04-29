@@ -12,6 +12,7 @@ require (
 	github.com/mattn/go-isatty v0.0.7 // indirect
 	github.com/sirupsen/logrus v1.4.1
 	github.com/stretchr/testify v1.2.2
+	github.com/udhos/equalfile v0.3.0
 	github.com/ugorji/go v1.1.4 // indirect
 	gopkg.in/birkirb/loggers.v1 v1.1.0
 	gopkg.in/go-playground/validator.v8 v8.18.2 // indirect

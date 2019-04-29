@@ -79,7 +79,7 @@ func (ss *ServerSuite) TestMultiPart() {
 	ss.srv.ServeHTTP(w, req)
 
 	assert.Equal(ss.T(), http.StatusInternalServerError, w.Code)
-	assert.Equal(ss.T(), "Error: no multipart boundary param in Content-Type", w.Body.String())
+	assert.Equal(ss.T(), "no multipart boundary param in Content-Type", w.Body.String())
 }
 
 // TODO: remove created dir
@@ -88,7 +88,7 @@ func (ss *ServerSuite) TestBase64() {
 	req, _ := http.NewRequest("POST", "/upload", strings.NewReader(`{"data":"data:image/png;base64,iVBORw0K","name":"file.ext"}`))
 	ss.srv.ServeHTTP(w, req)
 
-	assert.Equal(ss.T(), 415, w.Code)
+	assert.Equal(ss.T(), http.StatusUnsupportedMediaType, w.Code)
 	assert.Equal(ss.T(), "Unsupported media type", w.Body.String())
 }
 
@@ -97,6 +97,6 @@ func (ss *ServerSuite) TestURL() {
 	req, _ := http.NewRequest("GET", "/upload?url=/img/xx.png", nil)
 	ss.srv.ServeHTTP(w, req)
 
-	assert.Equal(ss.T(), 500, w.Code)
-	assert.Equal(ss.T(), "Error: Get /img/xx.png: unsupported protocol scheme \"\"", w.Body.String())
+	assert.Equal(ss.T(), http.StatusServiceUnavailable, w.Code)
+	assert.Equal(ss.T(), "Get /img/xx.png: unsupported protocol scheme \"\"", w.Body.String())
 }

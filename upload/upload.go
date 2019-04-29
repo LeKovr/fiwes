@@ -30,8 +30,19 @@ type Config struct {
 	UseRandomName bool   `long:"random_name" description:"Do not keep uploaded image filename"`
 }
 
-// ErrNotImage returned when media type isn't supported by underlying image processing package
-var ErrNotImage = errors.New("media not supported")
+const (
+	// ErrNoSingleFile returned when does not contain single file in field 'file'
+	ErrNoSingleFile = "field 'file' does not contains single item"
+	// ErrIncorrectData returned when field data does not contain valid base64 encoded data
+	ErrIncorrectData = "incorrect data format"
+	// ErrNotImage returned when media type isn't supported by underlying image processing package
+	ErrNotImage = "Unsupported media type"
+	// ErrNoCTypeExt returned when filename does not contain extension and we can't get it from content type
+	ErrNoCTypeExt = "File ext for content type not found"
+
+	// Minimal base64 image prefix len
+	Base64MinCommaIndex = 21
+)
 
 // Service holds upload service
 type Service struct {
@@ -49,7 +60,10 @@ func New(cfg Config, log loggers.Contextual) *Service {
 func (srv Service) HandleMultiPart(form *multipart.Form) (*string, error) {
 	files, ok := form.File["file"]
 	if !ok || len(files) != 1 {
-		return nil, errors.New("field 'file' is empty")
+		return nil, NewHTTPError(
+			http.StatusBadRequest,
+			errors.New(ErrNoSingleFile),
+		)
 	}
 	file := files[0]
 	src, err := file.Open()
@@ -71,10 +85,13 @@ func (srv Service) HandleMultiPart(form *multipart.Form) (*string, error) {
 func (srv Service) HandleURL(url string) (*string, error) {
 	response, err := http.Get(url)
 	if err != nil {
-		return nil, err
+		return nil, NewHTTPError(http.StatusServiceUnavailable, err)
 	}
 	if response.StatusCode != http.StatusOK {
-		return nil, errors.New("Image download failed: " + response.Status)
+		return nil, NewHTTPError(
+			http.StatusServiceUnavailable,
+			errors.New("Image download failed: "+response.Status),
+		)
 	}
 	src := io.LimitReader(response.Body, srv.getLimit)
 	contentType := response.Header.Get("Content-Type")
@@ -89,13 +106,16 @@ func (srv Service) HandleURL(url string) (*string, error) {
 // HandleBase64 stores file received as base64 encoded string
 func (srv Service) HandleBase64(data, name string) (*string, error) {
 	prefixLen := strings.Index(data, ",")
-	if prefixLen < 5 {
-		return nil, errors.New("incorrect data format")
+	if prefixLen < Base64MinCommaIndex {
+		return nil, NewHTTPError(
+			http.StatusBadRequest,
+			errors.New(ErrIncorrectData),
+		)
 	}
-	contentType := strings.TrimSuffix(data[5:prefixLen], ";base64")
+	contentType := strings.TrimSuffix(data[5:prefixLen], ";base64") // 5 means 'data:'
 	file, err := base64.StdEncoding.DecodeString(data[prefixLen+1:])
 	if err != nil {
-		return nil, err
+		return nil, NewHTTPError(http.StatusBadRequest, err)
 	}
 	src := bytes.NewReader(file)
 	name, err = srv.saveFile(src, contentType, name)
@@ -147,7 +167,7 @@ func (srv Service) saveFile(src io.Reader, contentType, fileName string) (name s
 	img, err = imaging.Open(srcName)
 	if err != nil {
 		srv.Log.Warnf("Open error: %v", err)
-		err = ErrNotImage
+		err = NewHTTPError(http.StatusUnsupportedMediaType, errors.New(ErrNotImage))
 		return
 	}
 
@@ -185,7 +205,7 @@ func contentTypeExt(contentType string) (ext string, err error) {
 		return
 	}
 	if len(exts) == 0 {
-		err = ErrNotImage
+		err = NewHTTPError(http.StatusUnsupportedMediaType, errors.New(ErrNoCTypeExt))
 		return
 	}
 	ext = exts[0]
@@ -215,7 +235,6 @@ func createFile(useRandom bool, dir, contentType, fileName string) (dst *os.File
 		return
 	}
 	// try to keep original filename
-	file := filepath.Join(dir, fileName)
 	ext := path.Ext(fileName)
 	if ext == "" {
 		// add ext from content type
@@ -223,8 +242,9 @@ func createFile(useRandom bool, dir, contentType, fileName string) (dst *os.File
 		if err != nil {
 			return
 		}
-		file += ext
+		fileName += ext
 	}
+	file := filepath.Join(dir, fileName)
 	// Check if fileName is already used
 	if _, err = os.Stat(file); err == nil {
 		// file exists, add random dir
