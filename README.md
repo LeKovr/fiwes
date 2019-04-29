@@ -24,7 +24,7 @@
 [di2]: https://hub.docker.com/r/lekovr/fiwes/
 [dp1]: https://img.shields.io/docker/pulls/lekovr/fiwes.svg
 [dp2]: https://hub.docker.com/r/lekovr/fiwes/pkg/
-[loc1]: .loc.svg "Lines of Code"
+[loc1]: https://raw.githubusercontent.com/LeKovr/fiwes/master/.loc.svg?sanitize=true "Lines of Code"
 [loc2]: LOC.md
 [gl1]: https://img.shields.io/github/license/LeKovr/fiwes.svg
 [gl2]: LICENSE
