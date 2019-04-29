@@ -43,7 +43,7 @@ const (
 	// ErrFmtBadDownload returnd when download status != 200
 	ErrFmtBadDownload = "Image download failed (%d)"
 
-	// Minimal base64 image prefix len
+	// Base64MinCommaIndex holds minimal base64 image prefix len
 	Base64MinCommaIndex = 21
 )
 

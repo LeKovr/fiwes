@@ -155,7 +155,7 @@ func (ss *ServerSuite) TestHandleBase64NoExt() {
 	assert.True(ss.T(), equal)
 
 	// test same name with error
-	name, err = ss.srv.HandleBase64(badBase64Image, "build")
+	_, err = ss.srv.HandleBase64(badBase64Image, "build")
 	require.NotNil(ss.T(), err)
 	httpErr, ok := err.(interface{ Status() int })
 	assert.True(ss.T(), ok)
