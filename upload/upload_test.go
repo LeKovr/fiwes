@@ -3,6 +3,7 @@ package upload
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"mime/multipart"
@@ -56,7 +57,7 @@ func (ss *ServerSuite) SetupSuite() {
 }
 
 func (ss *ServerSuite) TearDownSuite() {
-	//	os.RemoveAll(ss.root)
+	os.RemoveAll(ss.root)
 }
 
 func (ss *ServerSuite) TestHandleMultiPart() {
@@ -67,61 +68,44 @@ func (ss *ServerSuite) TestHandleMultiPart() {
 	fileContents, err := ioutil.ReadAll(f)
 	require.NoError(ss.T(), err)
 
-	body := new(bytes.Buffer)
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("file", "file.jpg")
-	require.NoError(ss.T(), err)
-	_, err = part.Write(fileContents)
-	require.NoError(ss.T(), err)
-	err = writer.Close()
-	require.NoError(ss.T(), err)
-
-	req, _ := http.NewRequest("POST", "/", body)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	err = req.ParseMultipartForm(32 << 20)
-	require.NoError(ss.T(), err)
-
-	name, err := ss.srv.HandleMultiPart(req.MultipartForm)
-	require.NoError(ss.T(), err)
-	cmp := equalfile.New(nil, equalfile.Options{}) // compare using single mode
-	equal, err := cmp.CompareFile("../testdata/pic100.jpg", ss.root+"/preview"+*name)
-	require.NoError(ss.T(), err)
-	assert.True(ss.T(), equal)
+	tests := []struct {
+		name  string
+		field string
+		err   error
+	}{
+		{"OK", "file", nil},
+		{"NoFile", "file1", errors.New(ErrNoSingleFile)},
+	}
+	for _, tt := range tests {
+		body := new(bytes.Buffer)
+		writer := multipart.NewWriter(body)
+		part, err := writer.CreateFormFile(tt.field, "file.jpg")
+		require.NoError(ss.T(), err)
+		_, err = part.Write(fileContents)
+		require.NoError(ss.T(), err)
+		err = writer.Close()
+		require.NoError(ss.T(), err)
+		req, _ := http.NewRequest("POST", "/", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		err = req.ParseMultipartForm(32 << 20)
+		require.NoError(ss.T(), err)
+		_, err = ss.srv.HandleMultiPart(req.MultipartForm)
+		if tt.err != nil {
+			require.NotNil(ss.T(), err, tt.name)
+			assert.Equal(ss.T(), tt.err.Error(), err.Error(), tt.name)
+			continue
+		}
+		require.NoError(ss.T(), err, tt.name)
+		name, err := ss.srv.HandleMultiPart(req.MultipartForm)
+		require.NoError(ss.T(), err, tt.name)
+		cmp := equalfile.New(nil, equalfile.Options{}) // compare using single mode
+		equal, err := cmp.CompareFile("../testdata/pic100.jpg", ss.root+"/preview"+*name)
+		require.NoError(ss.T(), err, tt.name)
+		assert.True(ss.T(), equal, tt.name)
+	}
 }
 
-func (ss *ServerSuite) TestHandleMultiPartError() {
-	path := filepath.Join("../testdata", "pic.jpg")
-	f, err := os.Open(path)
-	require.NoError(ss.T(), err)
-	defer f.Close()
-	fileContents, err := ioutil.ReadAll(f)
-	require.NoError(ss.T(), err)
-
-	body := new(bytes.Buffer)
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("file1", "file.jpg")
-	require.NoError(ss.T(), err)
-	_, err = part.Write(fileContents)
-	require.NoError(ss.T(), err)
-	err = writer.Close()
-	require.NoError(ss.T(), err)
-
-	req, _ := http.NewRequest("POST", "/", body)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	err = req.ParseMultipartForm(32 << 20)
-	require.NoError(ss.T(), err)
-
-	_, err = ss.srv.HandleMultiPart(req.MultipartForm)
-	require.NotNil(ss.T(), err)
-	assert.Equal(ss.T(), ErrNoSingleFile, err.Error())
-
-	//	require.NoError(ss.T(), err)
-	//	cmp := equalfile.New(nil, equalfile.Options{}) // compare using single mode
-	//	equal, err := cmp.CompareFile("../testdata/pic100.jpg", ss.root+"/preview"+*name)
-	//	require.NoError(ss.T(), err)
-	//	assert.True(ss.T(), equal)
-}
-func (ss *ServerSuite) TestHandleBase64Error() {
+func (ss *ServerSuite) TestHandleBase64BadRequest() {
 	ss.hook.Reset()
 	_, err := ss.srv.HandleBase64(badBase64, "file.png")
 	ss.printLogs()
@@ -147,7 +131,7 @@ type File struct {
 	Data string `form:"data" json:"data" binding:"required"`
 }
 
-func (ss *ServerSuite) TestHandleBase64() {
+func (ss *ServerSuite) TestHandleBase64OK() {
 	ss.hook.Reset()
 	js := &File{}
 	helperLoadJSON(ss.T(), "build", js)
@@ -204,7 +188,7 @@ func (ss *ServerSuite) TestHandleBase64NoExtRandom() {
 	assert.True(ss.T(), equal)
 }
 
-func (ss *ServerSuite) TestHandleURL() {
+func (ss *ServerSuite) TestHandleURLOK() {
 	testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		http.ServeFile(res, req, "../testdata/build.png")
 	}))
@@ -219,10 +203,29 @@ func (ss *ServerSuite) TestHandleURL() {
 	assert.True(ss.T(), equal)
 }
 
+func (ss *ServerSuite) TestHandleURLNotFound() {
+	testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		res.WriteHeader(http.StatusNotFound)
+	}))
+	defer func() { testServer.Close() }()
+
+	_, err := ss.srv.HandleURL(testServer.URL + "/build.png")
+	require.NotNil(ss.T(), err)
+	assert.Equal(ss.T(), fmt.Sprintf(ErrFmtBadDownload, 404), err.Error())
+}
+
+func (ss *ServerSuite) TestHandleURLNotAvailable() {
+	_, err := ss.srv.HandleURL("http://0.0.0.0:1/build.png")
+	require.NotNil(ss.T(), err)
+
+	httpErr, ok := err.(interface{ Status() int })
+	assert.True(ss.T(), ok)
+	assert.Equal(ss.T(), http.StatusServiceUnavailable, httpErr.Status())
+}
+
 func TestSuite(t *testing.T) {
 	myTest := &ServerSuite{}
 	suite.Run(t, myTest)
-
 }
 
 func (ss *ServerSuite) printLogs() {

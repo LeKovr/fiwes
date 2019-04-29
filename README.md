@@ -1,5 +1,34 @@
 # fiwes - FIle (Image) WEb Storage
 
+[![GoDoc][gd1]][gd2]
+ [![codecov][cc1]][cc2]
+ [![Build Status][bs1]][bs2]
+ [![GoCard][gc1]][gc2]
+ [![GitHub Release][gr1]][gr2]
+ [![Docker Image][di1]][di2]
+ [![Docker Pulls][dp1]][dp2]
+ [![LoC][loc1]][loc2]
+ [![GitHub license][gl1]][gl2]
+
+[bs1]: https://cloud.drone.io/api/badges/LeKovr/fiwes/status.svg
+[bs2]: https://cloud.drone.io/LeKovr/fiwes
+[cc1]: https://codecov.io/gh/LeKovr/fiwes/branch/master/graph/badge.svg
+[cc2]: https://codecov.io/gh/LeKovr/fiwes
+[gd1]: https://godoc.org/github.com/LeKovr/fiwes?status.svg
+[gd2]: https://godoc.org/github.com/LeKovr/fiwes
+[gc1]: https://goreportcard.com/badge/github.com/LeKovr/fiwes
+[gc2]: https://goreportcard.com/report/github.com/LeKovr/fiwes
+[gr1]: https://img.shields.io/github/release-pre/LeKovr/fiwes.svg
+[gr2]: https://github.com/LeKovr/fiwes/releases
+[di1]: https://img.shields.io/badge/docker-lekovr/fiwes-blue.svg
+[di2]: https://hub.docker.com/r/lekovr/fiwes/
+[dp1]: https://img.shields.io/docker/pulls/lekovr/fiwes.svg
+[dp2]: https://hub.docker.com/r/lekovr/fiwes/pkg/
+[loc1]: .loc.svg "Lines of Code"
+[loc2]: LOC.md
+[gl1]: https://img.shields.io/github/license/LeKovr/fiwes.svg
+[gl2]: LICENSE
+
 ## Назначение
 
 Приложение, которое принимает по http изображения, сохраняет их и делает превью 100х100 пикселей
@@ -26,6 +55,16 @@
 * fiwes - Вебсервер на основе [gin-gonic](http://github.com/gin-gonic/gin)
 * upload - прием и сохранение файла, создание preview с помощью [imaging](https://github.com/disintegration/imaging)
 * ginupload - привязка upload к [gin-gonic](http://github.com/gin-gonic/gin)
+
+## Деплой
+
+```
+git clone https://github.com/LeKovr/fiwes.git
+cd fiwes
+echo -e "DC_IMAGE=fiwes\nSERVER_PORT=8081\nGO_VERSION=1.12.4" > .env
+docker-compose up
+```
+Альтернативный вариант для строк 3,4 не требует установки docker-compose - `make up`
 
 ## Опции
 
@@ -123,10 +162,14 @@ $ make
 * [x] docker
 * [x] tests
 * [x] docs
-* [ ] tests refactoring
+* [x] tests refactoring
+* [ ] check naming
 * [ ] перенос в cmd?
 * [ ] добавить example?
 * [ ] справочник статусов ошибок?
-* [ ] если оригинальный файл 100x100 - делать симлинк 
+* [ ] тесты через докер?
+* [ ] если оригинальный файл 100x100 - делать симлинк? 
 * [ ] посмотреть аналоги
-
+* [ ] rate limit
+* [ ] HTTP Range, Conditional,Options requests
+* [ ] Compression for incoming base64 atleast

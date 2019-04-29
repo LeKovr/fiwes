@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"image"
 	"io"
 	"io/ioutil"
@@ -39,6 +40,8 @@ const (
 	ErrNotImage = "Unsupported media type"
 	// ErrNoCTypeExt returned when filename does not contain extension and we can't get it from content type
 	ErrNoCTypeExt = "File ext for content type not found"
+	// ErrFmtBadDownload returnd when download status != 200
+	ErrFmtBadDownload = "Image download failed (%d)"
 
 	// Minimal base64 image prefix len
 	Base64MinCommaIndex = 21
@@ -90,9 +93,10 @@ func (srv Service) HandleURL(url string) (*string, error) {
 	if response.StatusCode != http.StatusOK {
 		return nil, NewHTTPError(
 			http.StatusServiceUnavailable,
-			errors.New("Image download failed: "+response.Status),
+			fmt.Errorf(ErrFmtBadDownload, response.StatusCode),
 		)
 	}
+
 	src := io.LimitReader(response.Body, srv.getLimit)
 	contentType := response.Header.Get("Content-Type")
 	fileName := path.Base(response.Request.URL.Path)
@@ -166,17 +170,17 @@ func (srv Service) saveFile(src io.Reader, contentType, fileName string) (name s
 	var img image.Image
 	img, err = imaging.Open(srcName)
 	if err != nil {
+		// File is not an image
 		srv.Log.Warnf("Open error: %v", err)
 		err = NewHTTPError(http.StatusUnsupportedMediaType, errors.New(ErrNotImage))
 		return
 	}
-
 	name = strings.TrimPrefix(srcName, cfg.Dir)
 	previewName := filepath.Join(cfg.PreviewDir, name)
 	previewImage := imaging.Resize(img, cfg.PreviewWidth, cfg.PreviewHeight, imaging.Lanczos)
 
 	// name may contains random dir, ensure dir exists anyway
-	err = os.MkdirAll(path.Dir(previewName), 0700) //os.ModePerm)
+	err = os.MkdirAll(path.Dir(previewName), 0700)
 	if err != nil {
 		return
 	}
@@ -191,7 +195,6 @@ func (srv Service) saveFile(src io.Reader, contentType, fileName string) (name s
 			}
 		}
 	}()
-
 	err = imaging.Save(previewImage, previewName) // file mode allows read for all
 	srv.Log.Infof("Saved %d of %s", cnt, srcName)
 	return
@@ -214,13 +217,11 @@ func contentTypeExt(contentType string) (ext string, err error) {
 
 // createFile creates and return handle of unique file
 func createFile(useRandom bool, dir, contentType, fileName string) (dst *os.File, err error) {
-
 	// Ensure dir exists
 	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
 		return
 	}
-
 	if useRandom {
 		// Generate random filename with original ext
 		ext := path.Ext(fileName)

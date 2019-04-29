@@ -23,8 +23,12 @@ type Config struct {
 	Img ginupload.Config `group:"Image upload Options" namespace:"img"`
 }
 
-// ErrGotHelp returned after showing requested help
-var ErrGotHelp = errors.New("help printed")
+var (
+	// ErrGotHelp returned after showing requested help
+	ErrGotHelp = errors.New("help printed")
+	// ErrBadArgs returned after showing command args error message
+	ErrBadArgs = errors.New("option error printed")
+)
 
 // setupConfig loads flags from args (if given) or command flags and ENV otherwise
 func setupConfig(args ...string) (*Config, error) {
@@ -40,7 +44,7 @@ func setupConfig(args ...string) (*Config, error) {
 		if e, ok := err.(*flags.Error); ok && e.Type == flags.ErrHelp {
 			return nil, ErrGotHelp
 		}
-		return nil, err // error message printed already
+		return nil, ErrBadArgs
 	}
 	return cfg, nil
 }
@@ -72,10 +76,13 @@ func setupRouter(cfg *Config, log loggers.Contextual) *gin.Engine {
 	gup := ginupload.New(cfg.Img, log, nil)
 
 	router.POST(cfg.Img.UploadPath, func(c *gin.Context) {
-		if c.ContentType() == "multipart/form-data" {
+		switch c.ContentType() {
+		case "multipart/form-data":
 			gup.HandleMultiPart(c)
-		} else {
+		case "application/json":
 			gup.HandleBase64(c)
+		default:
+			c.String(http.StatusNotImplemented, "Content type (%s) not supported", c.ContentType())
 		}
 	})
 	router.GET(cfg.Img.UploadPath, func(c *gin.Context) {

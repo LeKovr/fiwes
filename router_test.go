@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -14,7 +15,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
 )
 
 func TestSetupConfig(t *testing.T) {
@@ -26,12 +26,7 @@ func TestSetupConfig(t *testing.T) {
 	assert.Equal(t, ErrGotHelp, err)
 
 	_, err = setupConfig()
-	assert.Equal(t, "unknown flag `t'", err.Error())
-
-	_, err = setupConfig("--unknown")
-	assert.NotNil(t, err)
-	assert.Equal(t, "unknown flag `unknown'", err.Error())
-
+	assert.Equal(t, ErrBadArgs, err)
 }
 
 func TestSetupLog(t *testing.T) {
@@ -44,59 +39,45 @@ func TestSetupLog(t *testing.T) {
 	assert.NotNil(t, l)
 }
 
-type ServerSuite struct {
-	suite.Suite
-	cfg  *Config
-	srv  *gin.Engine
-	hook *test.Hook
-}
-
-func (ss *ServerSuite) SetupSuite() {
-
+func TestHandlers(t *testing.T) {
 	// Fill config with default values
-	ss.cfg = &Config{}
-	p := flags.NewParser(ss.cfg, flags.Default)
+	cfg := &Config{}
+	p := flags.NewParser(cfg, flags.Default)
 	_, err := p.ParseArgs([]string{"--html"})
-	require.NoError(ss.T(), err)
+	require.NoError(t, err)
 
 	l, hook := test.NewNullLogger()
-	ss.hook = hook
 	l.SetLevel(logrus.DebugLevel)
 	log := mapper.NewLogger(l)
 	hook.Reset()
-	ss.srv = setupRouter(ss.cfg, log)
-}
+	srv := setupRouter(cfg, log)
 
-func TestSuite(t *testing.T) {
-	myTest := &ServerSuite{}
-	suite.Run(t, myTest)
-}
-
-func (ss *ServerSuite) TestMultiPart() {
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/upload", strings.NewReader(`fake data`))
-	req.Header.Set("Content-Type", "multipart/form-data")
-	ss.srv.ServeHTTP(w, req)
-
-	assert.Equal(ss.T(), http.StatusInternalServerError, w.Code)
-	assert.Equal(ss.T(), "no multipart boundary param in Content-Type", w.Body.String())
-}
-
-// TODO: remove created dir
-func (ss *ServerSuite) TestBase64() {
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/upload", strings.NewReader(`{"data":"data:image/png;base64,iVBORw0K","name":"file.ext"}`))
-	ss.srv.ServeHTTP(w, req)
-
-	assert.Equal(ss.T(), http.StatusUnsupportedMediaType, w.Code)
-	assert.Equal(ss.T(), "Unsupported media type", w.Body.String())
-}
-
-func (ss *ServerSuite) TestURL() {
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/upload?url=/img/xx.png", nil)
-	ss.srv.ServeHTTP(w, req)
-
-	assert.Equal(ss.T(), http.StatusServiceUnavailable, w.Code)
-	assert.Equal(ss.T(), "Get /img/xx.png: unsupported protocol scheme \"\"", w.Body.String())
+	tests := []struct {
+		name    string
+		method  string
+		url     string
+		reader  io.Reader
+		ctype   string
+		code    int
+		message string
+	}{
+		{"MultiPart", "POST", "/upload", strings.NewReader(`fake data`), "multipart/form-data",
+			http.StatusBadRequest, "no multipart boundary param in Content-Type"},
+		{"Base64", "POST", "/upload", strings.NewReader(`{"data":"data:image/png;base64,iVBORw0K","name":"file.ext"}`), "application/json",
+			http.StatusUnsupportedMediaType, "Unsupported media type"},
+		{"URL", "GET", "/upload?url=/img/xx.png", nil, "",
+			http.StatusServiceUnavailable, "Get /img/xx.png: unsupported protocol scheme \"\""},
+		{"BadCType", "POST", "/upload", nil, "application",
+			http.StatusNotImplemented, "Content type (application) not supported"},
+	}
+	for _, tt := range tests {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest(tt.method, tt.url, tt.reader)
+		if tt.ctype != "" {
+			req.Header.Set("Content-Type", tt.ctype)
+		}
+		srv.ServeHTTP(w, req)
+		assert.Equal(t, tt.code, w.Code, tt.name)
+		assert.Equal(t, tt.message, w.Body.String(), tt.name)
+	}
 }

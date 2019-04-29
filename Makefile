@@ -156,7 +156,9 @@ dc: docker-compose.yml
 cloc: LOC.md
 
 LOC.md: $(SOURCES)
-	cloc --by-file --not-match-f='(_moq_test.go|ml|.md|.sh|.json|file)$$' --md . > $@
+	cloc --by-file --not-match-f='(_moq_test.go|ml|.md|.sh|.json|file)$$' --md . > $@ 2>/dev/null
+	cloc --by-file --not-match-f='(_test.go|ml|.md|.sh|.json|file)$$' . 2>/dev/null
+	cloc --by-file --not-match-f='_moq_test.go$$' --match-f='_test.go$$' .  2>/dev/null
 
 ## List Makefile targets
 help:  Makefile

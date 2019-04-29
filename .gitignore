@@ -12,3 +12,6 @@ fiwes
 # img store
 data
 var
+
+# config files
+.env*

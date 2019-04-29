@@ -34,7 +34,7 @@ type Service struct {
 	up     Uploader
 }
 
-// New creates an Service object
+// New creates a Service object
 func New(cfg Config, log loggers.Contextual, upl Uploader) *Service {
 	if upl == nil {
 		upl = upload.New(cfg.Config, log)
@@ -46,6 +46,7 @@ func New(cfg Config, log loggers.Contextual, upl Uploader) *Service {
 func (srv Service) HandleMultiPart(c *gin.Context) {
 	form, err := c.MultipartForm()
 	if err != nil {
+		err = upload.NewHTTPError(http.StatusBadRequest, err)
 		logError(c, err)
 		return
 	}
@@ -81,7 +82,6 @@ func (srv Service) HandleBase64(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
 	name, err := srv.up.HandleBase64(json.Data, json.Name)
 	if err != nil {
 		logError(c, err)
@@ -92,10 +92,12 @@ func (srv Service) HandleBase64(c *gin.Context) {
 }
 
 // logError fills response with error message
-func logError(c *gin.Context, e error) {
-	if eHTTP, ok := e.(interface{ Status() int }); ok {
-		c.String(eHTTP.Status(), e.Error())
+func logError(c *gin.Context, err error) {
+	var status int
+	if e, ok := err.(interface{ Status() int }); ok {
+		status = e.Status()
 	} else {
-		c.String(http.StatusInternalServerError, e.Error())
+		status = http.StatusInternalServerError
 	}
+	c.String(status, err.Error())
 }

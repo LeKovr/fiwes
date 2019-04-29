@@ -9,18 +9,36 @@ import (
 var version = "0.0-dev"
 
 func main() {
+	run(os.Exit)
+}
+
+func run(exitFunc func(code int)) {
 	log.Printf("fiwes %s. File web storage server", version)
-	cfg, err := setupConfig()
+	var err error
+	var cfg *Config
+	defer func() { shutdown(exitFunc, err) }()
+	cfg, err = setupConfig()
 	if err != nil {
-		if err == ErrGotHelp {
-			os.Exit(1)
-		}
-		os.Exit(2)
+		return
 	}
 	l := setupLog()
 	r := setupRouter(cfg, l)
 	err = r.Run(cfg.Addr)
-	if err != nil {
-		log.Fatalf("Run error: %s", err.Error())
+}
+
+// exit after deferred cleanups have run
+func shutdown(exitFunc func(code int), e error) {
+	if e != nil {
+		var code int
+		switch e {
+		case ErrGotHelp:
+			code = 3
+		case ErrBadArgs:
+			code = 2
+		default:
+			code = 1
+			log.Printf("Run error: %s", e.Error())
+		}
+		exitFunc(code)
 	}
 }
