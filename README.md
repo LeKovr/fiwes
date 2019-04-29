@@ -18,7 +18,7 @@
 [gd2]: https://godoc.org/github.com/LeKovr/fiwes
 [gc1]: https://goreportcard.com/badge/github.com/LeKovr/fiwes
 [gc2]: https://goreportcard.com/report/github.com/LeKovr/fiwes
-[gr1]: https://img.shields.io/github/release-pre/LeKovr/fiwes.svg
+[gr1]: https://img.shields.io/github/release/LeKovr/fiwes.svg
 [gr2]: https://github.com/LeKovr/fiwes/releases
 [di1]: https://img.shields.io/badge/docker-lekovr/fiwes-blue.svg
 [di2]: https://hub.docker.com/r/lekovr/fiwes/
