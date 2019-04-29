@@ -35,6 +35,8 @@ DOCKER_BIN    ?= docker
 
 # Docker container port
 SERVER_PORT   ?= 8080
+# Image store dir
+DATA_DIR      ?= ./var/data
 
 # -----------------------------------------------------------------------------
 
@@ -107,7 +109,7 @@ cov-clean:
 
 # internal target
 datadir:
-	mkdir -p -m 777 var/data/{img,preview}
+	mkdir -p -m 777 $(DATA_DIR)/{img,preview}
 
 ## Start service in container
 up: datadir
@@ -128,7 +130,7 @@ build-docker-nc:
 	@$(MAKE) -s dc CMD="build --no-cache --force-rm $(DC_SERVICE)"
 
 ## Remove docker image & temp files
-clean-docker: clean-test-docker
+clean-docker:
 	[[ "$$($(DOCKER_BIN) images -q $(DC_IMAGE) 2> /dev/null)" == "" ]] || $(DOCKER_BIN) rmi $(DC_IMAGE)
 
 # ------------------------------------------------------------------------------
@@ -143,6 +145,7 @@ dc: docker-compose.yml
   -w $$PWD \
   --env=GO_VERSION=$(GO_VER) \
   --env=SERVER_PORT=$(SERVER_PORT) \
+  --env=DATA_DIR=$(DATA_DIR) \
   --env=DC_IMAGE=$(DC_IMAGE) \
   docker/compose:$(DC_VER) \
   -p $(PROJECT_NAME) \

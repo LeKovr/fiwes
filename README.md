@@ -61,10 +61,13 @@
 ```
 git clone https://github.com/LeKovr/fiwes.git
 cd fiwes
-echo -e "DC_IMAGE=fiwes\nSERVER_PORT=8081\nGO_VERSION=1.12.4" > .env
+mkdir -p -m 777 ./var/data/{img,preview}
+echo -e "DATA_DIR=./var/data\nSERVER_PORT=8081\nDC_IMAGE=fiwes\nGO_VERSION=1.12.4" > .env
 docker-compose up
 ```
-Альтернативный вариант для строк 3,4 не требует установки docker-compose - `make up`
+После запуска сервис доступен по адресу http://localhost:8081/.
+
+Альтернативный вариант для строк 3-5 не требует установки docker-compose - `make up`
 
 ## Опции
 
@@ -139,6 +142,31 @@ $ make
 
 ```
 
+## Статусы ответа сервера
+
+### 200. OK
+* возвращается вместе с ответом в JSON при успешной загрузке изображения в base64
+
+### 302. Found
+* Редирект на превью, возвращается при загрузке изображения методом POST в "multipart/form-data"
+* Редирект на превью, возвращается при загрузке изображения методом GET
+
+### 400. BadRequest
+* данные не соответствуют формату "multipart/form-data"
+* JSON не соответствует структуре `{"name": .., "data":..}`
+* в форме не передано поле "file" в единственном числе
+* строка в base64 Не соответствует формату
+
+### 415. UnsupportedMediaType
+* Загруженный файл не может быть обработан как изображение
+* Не удалось определить расширение файла по переданному Content-Type
+
+### 500. InternalServerError
+* Ошибка на стороне сервиса, подробности записаны в журнал
+
+### 503. ServiceUnavailable
+* Ошибка загрузки изображения по URL
+* Статус ответа загрузки изображения по URL != 200
 
 ## См. также
 
@@ -153,23 +181,18 @@ $ make
   * https://github.com/aldor007/mort
   * https://github.com/thoas/picfit
 
-### TODO
+### Варианты развития проекта
 
-* [x] refactoring
-* [x] html
-* [x] js (show preview?)
-* [x] drop unsupported media
-* [x] docker
-* [x] tests
-* [x] docs
-* [x] tests refactoring
-* [ ] check naming
-* [ ] перенос в cmd?
-* [ ] добавить example?
-* [ ] справочник статусов ошибок?
-* [ ] тесты через докер?
-* [ ] если оригинальный файл 100x100 - делать симлинк? 
-* [ ] посмотреть аналоги
+* [ ] add example?
+* [ ] tests via docker?
+* [ ] main.go: leave main() only and add `//+build !test`?
+* [ ] create preview as symlink if image size is 100x100?
 * [ ] rate limit
-* [ ] HTTP Range, Conditional,Options requests
-* [ ] Compression for incoming base64 atleast
+* [ ] HTTP Range, Conditional, Options requests
+* [ ] Compression, for incoming base64 atleast
+
+## License
+
+The MIT License (MIT), see [LICENSE](LICENSE).
+
+Copyright (c) 2019 Aleksei Kovrizhkin <lekovr+fiwes@gmail.com>

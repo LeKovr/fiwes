@@ -98,6 +98,7 @@ func logError(c *gin.Context, err error) {
 		status = e.Status()
 	} else {
 		status = http.StatusInternalServerError
+		c.Error(err) // nolint: errcheck
 	}
 	c.String(status, err.Error())
 }

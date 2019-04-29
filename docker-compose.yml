@@ -1,4 +1,4 @@
-version: '2.1'
+version: '2.0'
 
 services:
 
@@ -11,7 +11,7 @@ services:
     volumes:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-      - ./var/data:/data
+      - ${DATA_DIR}:/data
     build:
       context: .
       args:
