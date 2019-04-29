@@ -121,12 +121,12 @@ $ make
 * [x] js (show preview?)
 * [x] drop unsupported media
 * [x] docker
-* [ ] tests
-* [ ] docs
+* [x] tests
+* [x] docs
+* [ ] tests refactoring
+* [ ] перенос в cmd?
+* [ ] добавить example?
+* [ ] справочник статусов ошибок?
 * [ ] если оригинальный файл 100x100 - делать симлинк 
 * [ ] посмотреть аналоги
-
-перенос в cmd?
-добавить example?
-справочник статусов ошибок
 

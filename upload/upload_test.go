@@ -238,10 +238,3 @@ func helperLoadJSON(t *testing.T, name string, data interface{}) {
 	err = json.Unmarshal(bytes, &data)
 	require.NoError(t, err)
 }
-
-// +multipart
-// +url
-// +файл без расширения
-// повтор файла
-// повтор файла с ошибкой
-// userandom
