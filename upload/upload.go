@@ -40,7 +40,7 @@ const (
 	ErrNotImage = "Unsupported media type"
 	// ErrNoCTypeExt returned when filename does not contain extension and we can't get it from content type
 	ErrNoCTypeExt = "File ext for content type not found"
-	// ErrFmtBadDownload returnd when download status != 200
+	// ErrFmtBadDownload returned when download status != 200
 	ErrFmtBadDownload = "Image download failed (%d)"
 
 	// Base64MinCommaIndex holds minimal base64 image prefix len
