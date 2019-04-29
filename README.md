@@ -1,4 +1,4 @@
-# fiwes - FIle (Image) WEb Storage
+# fiwes - File (Image) WEb Storage
 
 [![GoDoc][gd1]][gd2]
  [![codecov][cc1]][cc2]
@@ -6,7 +6,6 @@
  [![GoCard][gc1]][gc2]
  [![GitHub Release][gr1]][gr2]
  [![Docker Image][di1]][di2]
- [![Docker Pulls][dp1]][dp2]
  [![LoC][loc1]][loc2]
  [![GitHub license][gl1]][gl2]
 
@@ -22,16 +21,14 @@
 [gr2]: https://github.com/LeKovr/fiwes/releases
 [di1]: https://img.shields.io/badge/docker-lekovr/fiwes-blue.svg
 [di2]: https://hub.docker.com/r/lekovr/fiwes/
-[dp1]: https://img.shields.io/docker/pulls/lekovr/fiwes.svg
-[dp2]: https://hub.docker.com/r/lekovr/fiwes/pkg/
 [loc1]: https://raw.githubusercontent.com/LeKovr/fiwes/master/.loc.svg?sanitize=true "Lines of Code"
-[loc2]: LOC.md
+[loc2]: https://github.com/LeKovr/fiwes/blob/master/LOC.md
 [gl1]: https://img.shields.io/github/license/LeKovr/fiwes.svg
-[gl2]: LICENSE
+[gl2]: https://github.com/LeKovr/fiwes/blob/master/LICENSE
 
 ## Назначение
 
-Приложение, которое принимает по http изображения, сохраняет их и делает превью 100х100 пикселей
+Приложение, которое принимает по http изображения, сохраняет их и делает превью 100х100 пикселей.
 
 Входные данные: 
 1. multipart/form-data
@@ -52,9 +49,9 @@
 
 ## Архитектура
 
-* fiwes - Вебсервер на основе [gin-gonic](http://github.com/gin-gonic/gin)
-* upload - прием и сохранение файла, создание preview с помощью [imaging](https://github.com/disintegration/imaging)
-* ginupload - привязка upload к [gin-gonic](http://github.com/gin-gonic/gin)
+* [fiwes](https://github.com/LeKovr/fiwes) - Вебсервер на основе [gin-gonic](http://github.com/gin-gonic/gin)
+* [upload](https://godoc.org/github.com/LeKovr/fiwes/upload) - прием и сохранение файла, создание preview с помощью [imaging](https://github.com/disintegration/imaging)
+* [ginupload](https://godoc.org/github.com/LeKovr/fiwes/ginupload) - привязка upload к [gin-gonic](http://github.com/gin-gonic/gin)
 
 ## Деплой
 
