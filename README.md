@@ -56,15 +56,18 @@
 ## Деплой
 
 ```
-git clone https://github.com/LeKovr/fiwes.git
-cd fiwes
-mkdir -p -m 777 ./var/data/{img,preview}
-echo -e "DATA_DIR=./var/data\nSERVER_PORT=8081\nDC_IMAGE=fiwes\nGO_VERSION=1.12.4" > .env
+wget https://raw.githubusercontent.com/LeKovr/fiwes/master/docker-compose.yml
 docker-compose up
 ```
-После запуска сервис доступен по адресу http://localhost:8081/.
+После запуска сервис доступен по адресу http://localhost:8080/.
 
-Альтернативный вариант для строк 3-5 не требует установки docker-compose - `make up`
+### Локальная сборка
+
+```
+git clone https://github.com/LeKovr/fiwes.git
+cd fiwes
+make up
+```
 
 ## Опции
 

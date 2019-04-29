@@ -142,6 +142,7 @@ dc: docker-compose.yml
 	@$(DOCKER_BIN) run --rm  -i \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v $$PWD:$$PWD \
+  -v $$PWD/docker-compose.make.yml:$$PWD/docker-compose.yml \
   -w $$PWD \
   --env=GO_VERSION=$(GO_VER) \
   --env=SERVER_PORT=$(SERVER_PORT) \

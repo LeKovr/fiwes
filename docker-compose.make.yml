@@ -1,3 +1,6 @@
+# This file used by make for docker-composer container operations
+# including docker image build
+
 version: '2.1'
 
 services:
@@ -7,8 +10,12 @@ services:
     command:
       --html --http_addr :8080
     ports:
-      - ${SERVER_PORT:-127.0.0.1:8080}:8080
+      - "${SERVER_PORT:-8080}:8080"
     volumes:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
       - ${DATA_DIR:-./var/data}:/data
+    build:
+      context: .
+      args:
+        - GO_VERSION=${GO_VERSION:-1.12.4}

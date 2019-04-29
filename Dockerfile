@@ -60,7 +60,8 @@ ENV PORT 8080
 EXPOSE ${PORT}
 
 # Perform any further action as an unprivileged user.
-USER nobody:nobody
+# Custom entrypoint will be needed for store dir permissions set
+#USER nobody:nobody
 
 # Run the compiled binary.
 ENTRYPOINT ["/fiwes"]
