@@ -7,7 +7,7 @@ SHELL          = /bin/bash
 
 GO            ?= go
 VERSION       ?= $(shell git describe --tags)
-SOURCES       ?= *.go */*.go
+SOURCES       ?= cmd/*/*.go */*.go
 
 # -----------------------------------------------------------------------------
 # Docker image config
@@ -52,18 +52,18 @@ all: help
 
 ## Run from sources
 run:
-	$(GO) run . --html
+	$(GO) run ./cmd/fiwes/ --html
 
 ## Build app with checks
 build-all: lint lint-more vet cov build
 
 ## Build app
 build: 
-	go build -ldflags "-X main.version=$(VERSION)" .
+	go build -ldflags "-X main.version=$(VERSION)" ./cmd/fiwes
 
 ## Build app used in docker from scratch
 build-standalone: cov vet lint lint-more
-	CGO_ENABLED=0 GOOS=linux go build -ldflags "-X main.version=`git describe --tags`" -installsuffix 'static' -a .
+	CGO_ENABLED=0 GOOS=linux go build -ldflags "-X main.version=`git describe --tags`" -installsuffix 'static' -a ./cmd/fiwes
 
 ## Generate mocks
 gen:

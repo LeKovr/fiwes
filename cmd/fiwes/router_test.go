@@ -2,8 +2,10 @@ package main
 
 import (
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -50,6 +52,10 @@ func TestHandlers(t *testing.T) {
 	l.SetLevel(logrus.DebugLevel)
 	log := mapper.NewLogger(l)
 	hook.Reset()
+
+	cfg.Img.Config.Dir, err = ioutil.TempDir("", "img")
+	require.NoError(t, err)
+	defer os.RemoveAll(cfg.Img.Config.Dir)
 	srv := setupRouter(cfg, log)
 
 	tests := []struct {

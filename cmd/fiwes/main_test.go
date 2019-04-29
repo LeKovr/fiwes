@@ -9,28 +9,24 @@ import (
 
 func TestRun(t *testing.T) {
 	// Save original args
-	a1 := os.Args[1]
-	a2 := os.Args[2]
+	a := os.Args
 
 	tests := []struct {
 		name string
 		code int
-		arg1 string
-		arg2 string
+		args []string
 	}{
-		{"Help", 3, "-h", ""},
-		{"UnknownFlag", 2, "-0", ""},
-		{"UnknownPort", 1, "--http_addr", ":xx"},
+		{"Help", 3, []string{"-h"}},
+		{"UnknownFlag", 2, []string{"-0"}},
+		{"UnknownPort", 1, []string{"--http_addr", ":xx"}},
 	}
 	for _, tt := range tests {
-		os.Args[1] = tt.arg1
-		os.Args[2] = tt.arg2
+		os.Args = append([]string{a[0]}, tt.args...)
 		var c int
 		run(func(code int) { c = code })
 		assert.Equal(t, tt.code, c, tt.name)
 	}
 
 	// Restore original args
-	os.Args[1] = a1
-	os.Args[2] = a2
+	os.Args = a
 }
