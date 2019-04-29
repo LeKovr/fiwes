@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gopkg.in/birkirb/loggers.v1"
 
-	"fiwes/upload"
+	"github.com/LeKovr/fiwes/upload"
 )
 
 // Config holds all config vars

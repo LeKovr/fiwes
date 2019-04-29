@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gopkg.in/birkirb/loggers.v1"
 
-	"fiwes/ginupload"
+	"github.com/LeKovr/fiwes/ginupload"
 )
 
 // Config holds all config vars

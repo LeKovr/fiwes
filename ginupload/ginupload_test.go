@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"fiwes/upload"
+	"github.com/LeKovr/fiwes/upload"
 )
 
 type ServerSuite struct {

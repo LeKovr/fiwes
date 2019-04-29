@@ -1,4 +1,4 @@
-module fiwes
+module github.com/LeKovr/fiwes
 
 go 1.12
 
