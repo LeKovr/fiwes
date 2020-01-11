@@ -21,6 +21,8 @@ import (
 	"gopkg.in/birkirb/loggers.v1"
 )
 
+// codebeat:disable[TOO_MANY_IVARS]
+
 // Config holds all config vars
 type Config struct {
 	DownloadLimit int64  `long:"download_limit" default:"8" description:"External image size limit (Mb)"`
@@ -30,6 +32,8 @@ type Config struct {
 	PreviewHeight int    `long:"preview_heigth" default:"100" description:"Preview image heigth"`
 	UseRandomName bool   `long:"random_name" description:"Do not keep uploaded image filename"`
 }
+
+// codebeat:enable[TOO_MANY_IVARS]
 
 const (
 	// ErrNoSingleFile returned when does not contain single file in field 'file'
