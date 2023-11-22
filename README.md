@@ -2,15 +2,12 @@
 
 [![GoDoc][gd1]][gd2]
  [![codecov][cc1]][cc2]
- [![Build Status][bs1]][bs2]
  [![GoCard][gc1]][gc2]
  [![GitHub Release][gr1]][gr2]
  [![Docker Image][di1]][di2]
  [![LoC][loc1]][loc2]
  [![GitHub license][gl1]][gl2]
 
-[bs1]: https://cloud.drone.io/api/badges/LeKovr/fiwes/status.svg
-[bs2]: https://cloud.drone.io/LeKovr/fiwes
 [cc1]: https://codecov.io/gh/LeKovr/fiwes/branch/master/graph/badge.svg
 [cc2]: https://codecov.io/gh/LeKovr/fiwes
 [gd1]: https://godoc.org/github.com/LeKovr/fiwes?status.svg
