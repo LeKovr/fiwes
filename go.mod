@@ -2,14 +2,17 @@ module github.com/LeKovr/fiwes
 
 go 1.19
 
-// Dependabot alerts #8,#15,#16
-require golang.org/x/image v0.10.0 // indirect
+// Dependabot alerts #8, #15, #16, #21
+require golang.org/x/image v0.18.0 // indirect
 
-// Dependabot alerts #12,#13,#14
-require golang.org/x/net v0.17.0 // indirect
+// Dependabot alerts #12,#13,#14, #20
+require golang.org/x/net v0.23.0 // indirect
 
 // Dependabot alerts #17
-require golang.org/x/crypto v0.17.0 // indirect
+require golang.org/x/crypto v0.21.0 // indirect
+
+// Dependabot alerts #18
+require google.golang.org/protobuf v1.33.0 // indirect
 
 require (
 	github.com/birkirb/loggers-mapper-logrus v0.0.0-20180326232643-461f2d8e6f72
@@ -43,8 +46,7 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	golang.org/x/arch v0.3.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
-	google.golang.org/protobuf v1.30.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/text v0.16.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
