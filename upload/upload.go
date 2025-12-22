@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"image"
 	"io"
-	"io/ioutil"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -17,7 +16,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/disintegration/imaging"
+	"github.com/sunshineplan/imgconv"
 	"gopkg.in/birkirb/loggers.v1"
 )
 
@@ -41,11 +40,11 @@ const (
 	// ErrIncorrectData returned when field data does not contain valid base64 encoded data
 	ErrIncorrectData = "incorrect data format"
 	// ErrNotImage returned when media type isn't supported by underlying image processing package
-	ErrNotImage = "Unsupported media type"
+	ErrNotImage = "unsupported media type"
 	// ErrNoCTypeExt returned when filename does not contain extension and we can't get it from content type
-	ErrNoCTypeExt = "File ext for content type not found"
+	ErrNoCTypeExt = "file ext for content type not found"
 	// ErrFmtBadDownload returned when download status != 200
-	ErrFmtBadDownload = "Image download failed (%d)"
+	ErrFmtBadDownload = "image download failed (%d)"
 
 	// Base64MinCommaIndex holds minimal base64 image prefix len
 	Base64MinCommaIndex = 21
@@ -172,7 +171,7 @@ func (srv Service) saveFile(src io.Reader, contentType, fileName string) (name s
 
 	// create preview
 	var img image.Image
-	img, err = imaging.Open(srcName)
+	img, err = imgconv.Open(srcName)
 	if err != nil {
 		// File is not an image
 		srv.Log.Warnf("Open error: %v", err)
@@ -181,7 +180,7 @@ func (srv Service) saveFile(src io.Reader, contentType, fileName string) (name s
 	}
 	name = strings.TrimPrefix(srcName, cfg.Dir)
 	previewName := filepath.Join(cfg.PreviewDir, name)
-	previewImage := imaging.Resize(img, cfg.PreviewWidth, cfg.PreviewHeight, imaging.Lanczos)
+	previewImage := imgconv.Resize(img, &imgconv.ResizeOption{Width: cfg.PreviewWidth, Height: cfg.PreviewHeight})
 
 	// name may contains random dir, ensure dir exists anyway
 	err = os.MkdirAll(path.Dir(previewName), 0700)
@@ -194,12 +193,28 @@ func (srv Service) saveFile(src io.Reader, contentType, fileName string) (name s
 			if path.Dir(previewName) != cfg.PreviewDir {
 				e := os.Remove(path.Dir(previewName))
 				if e != nil {
-					srv.Log.Errorf("Error removing preview dir: ", e)
+					srv.Log.Errorf("Error removing preview dir: %w", e)
 				}
 			}
 		}
 	}()
-	err = imaging.Save(previewImage, previewName) // file mode allows read for all
+	// open output file
+	var fo *os.File
+	fo, err = os.Create(previewName)
+	if err != nil {
+		srv.Log.Errorf("Create error: %w", err)
+		return
+	}
+	// close fo on exit and check for its returned error
+	defer func() {
+		err = fo.Close()
+	}()
+	ext := path.Ext(previewName)
+	var format imgconv.Format
+	if format, err = imgconv.FormatFromExtension(ext[1:]); err != nil {
+		return
+	}
+	err = imgconv.Write(fo, previewImage, &imgconv.FormatOption{Format: format}) // file mode allows read for all
 	srv.Log.Infof("Saved %d of %s", cnt, srcName)
 	return
 }
@@ -236,7 +251,7 @@ func createFile(useRandom bool, dir, contentType, fileName string) (dst *os.File
 			}
 		}
 		// create & lock file
-		dst, err = ioutil.TempFile(dir, "*"+ext)
+		dst, err = os.CreateTemp(dir, "*"+ext)
 		return
 	}
 	// try to keep original filename
@@ -254,7 +269,7 @@ func createFile(useRandom bool, dir, contentType, fileName string) (dst *os.File
 	if _, err = os.Stat(file); err == nil {
 		// file exists, add random dir
 		var outDir string
-		outDir, err = ioutil.TempDir(dir, "")
+		outDir, err = os.MkdirTemp(dir, "")
 		if err != nil {
 			return
 		}

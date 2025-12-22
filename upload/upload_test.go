@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -49,7 +49,7 @@ func (ss *ServerSuite) SetupSuite() {
 	log := mapper.NewLogger(l)
 
 	hook.Reset()
-	ss.root, err = ioutil.TempDir("", "img")
+	ss.root, err = os.MkdirTemp("", "img")
 	require.NoError(ss.T(), err)
 	ss.cfg.Dir = filepath.Join(ss.root, "/img")
 	ss.cfg.PreviewDir = filepath.Join(ss.root, "/preview")
@@ -65,7 +65,7 @@ func (ss *ServerSuite) TestHandleMultiPart() {
 	f, err := os.Open(path)
 	require.NoError(ss.T(), err)
 	defer f.Close()
-	fileContents, err := ioutil.ReadAll(f)
+	fileContents, err := io.ReadAll(f)
 	require.NoError(ss.T(), err)
 
 	tests := []struct {
@@ -236,7 +236,7 @@ func (ss *ServerSuite) printLogs() {
 
 func helperLoadJSON(t *testing.T, name string, data interface{}) {
 	path := filepath.Join("../testdata", name+".json") // relative path
-	bytes, err := ioutil.ReadFile(path)
+	bytes, err := os.ReadFile(path)
 	require.NoError(t, err)
 	err = json.Unmarshal(bytes, &data)
 	require.NoError(t, err)
