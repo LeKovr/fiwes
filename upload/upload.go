@@ -85,12 +85,6 @@ func (srv Service) HandleMultiPart(form *multipart.Form) (*string, error) {
 		)
 	}
 	file := files[0]
-	if !ReImageFileName.MatchString(file.Filename) {
-		return nil, NewHTTPError(
-			http.StatusBadRequest,
-			errors.New(ErrBadFilename),
-		)
-	}
 	src, err := file.Open()
 	if err != nil {
 		return nil, err
@@ -99,6 +93,13 @@ func (srv Service) HandleMultiPart(form *multipart.Form) (*string, error) {
 
 	contentType := file.Header.Get("Content-Type")
 	fileName := filepath.Base(file.Filename)
+	if !ReImageFileName.MatchString(fileName) {
+		return nil, NewHTTPError(
+			http.StatusBadRequest,
+			errors.New(ErrBadFilename),
+		)
+	}
+
 	name, err := srv.saveFile(src, contentType, fileName)
 	if err != nil {
 		return nil, err
@@ -120,7 +121,7 @@ func (srv Service) HandleURL(url string) (*string, error) {
 	if !srv.IsURLAllowed(url) {
 		return nil, NewHTTPError(
 			http.StatusBadRequest,
-			errors.New(ErrHostNotAllowed+url),
+			errors.New(ErrHostNotAllowed),
 		)
 	}
 	response, err := http.Get(url)
