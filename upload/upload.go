@@ -124,7 +124,7 @@ func (srv Service) HandleURL(url string) (*string, error) {
 			errors.New(ErrHostNotAllowed),
 		)
 	}
-	response, err := http.Get(url)
+	response, err := http.Get(url) // #nosec G107, URL prefix checked above
 	if err != nil {
 		return nil, NewHTTPError(http.StatusServiceUnavailable, err)
 	}
@@ -159,6 +159,12 @@ func (srv Service) HandleBase64(data, name string) (*string, error) {
 		return nil, NewHTTPError(
 			http.StatusBadRequest,
 			errors.New(ErrIncorrectData),
+		)
+	}
+	if !ReImageFileName.MatchString(name) {
+		return nil, NewHTTPError(
+			http.StatusBadRequest,
+			errors.New(ErrBadFilename),
 		)
 	}
 	contentType := strings.TrimSuffix(data[5:prefixLen], ";base64") // 5 means 'data:'
@@ -205,9 +211,10 @@ func (srv Service) saveFile(src io.Reader, contentType, fileName string) (name s
 
 	var cnt int64
 	srcName := dst.Name()
-	cnt, err = io.Copy(dst, src)
-	dst.Close()
-	if err != nil {
+	if cnt, err = io.Copy(dst, src); err != nil {
+		return
+	}
+	if err = dst.Close(); err != nil {
 		return
 	}
 
@@ -242,7 +249,7 @@ func (srv Service) saveFile(src io.Reader, contentType, fileName string) (name s
 	}()
 	// open output file
 	var fo *os.File
-	fo, err = os.Create(previewName)
+	fo, err = os.Create(previewName) // #nosec G304, checked via ReImageFileName.MatchString
 	if err != nil {
 		srv.Log.Errorf("Create error: %w", err)
 		return
@@ -279,7 +286,7 @@ func contentTypeExt(contentType string) (ext string, err error) {
 // createFile creates and return handle of unique file
 func createFile(useRandom bool, dir, contentType, fileName string) (dst *os.File, err error) {
 	// Ensure dir exists
-	err = os.MkdirAll(dir, os.ModePerm)
+	err = os.MkdirAll(dir, 0750)
 	if err != nil {
 		return
 	}
@@ -318,6 +325,6 @@ func createFile(useRandom bool, dir, contentType, fileName string) (dst *os.File
 		file = filepath.Join(outDir, fileName)
 	}
 	// create & lock file
-	dst, err = os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0600)
+	dst, err = os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0600) // #nosec G304, checked via ReImageFileName.MatchString
 	return
 }
