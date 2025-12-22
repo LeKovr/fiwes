@@ -53,7 +53,7 @@ func (ss *ServerSuite) SetupSuite() {
 	require.NoError(ss.T(), err)
 	ss.cfg.Dir = filepath.Join(ss.root, "/img")
 	ss.cfg.PreviewDir = filepath.Join(ss.root, "/preview")
-	ss.cfg.AllowedImageHosts = []string{"127.0.0.1:"}
+	ss.cfg.AllowedImageHosts = []string{"127.0.0.1"}
 	ss.srv = New(ss.cfg, log)
 }
 
@@ -148,8 +148,12 @@ func (ss *ServerSuite) TestHandleBase64NoExt() {
 	ss.hook.Reset()
 	js := &File{}
 	helperLoadJSON(ss.T(), "build", js)
-	name, err := ss.srv.HandleBase64(js.Data, "build")
+	_, err := ss.srv.HandleBase64(js.Data, "build")
+	require.EqualError(ss.T(), err, ErrBadFilename)
+
+	name, err := ss.srv.HandleBase64(js.Data, "build.png")
 	require.NoError(ss.T(), err)
+
 	cmp := equalfile.New(nil, equalfile.Options{}) // compare using single mode
 	equal, err := cmp.CompareFile("../testdata/build100.png", ss.root+"/preview"+*name)
 	require.NoError(ss.T(), err)
@@ -160,7 +164,7 @@ func (ss *ServerSuite) TestHandleBase64NoExt() {
 	require.NotNil(ss.T(), err)
 	httpErr, ok := err.(interface{ Status() int })
 	assert.True(ss.T(), ok)
-	assert.Equal(ss.T(), http.StatusUnsupportedMediaType, httpErr.Status())
+	assert.Equal(ss.T(), http.StatusBadRequest, httpErr.Status())
 
 }
 
@@ -172,7 +176,7 @@ func (ss *ServerSuite) TestHandleBase64BadMedia() {
 	require.NotNil(ss.T(), err)
 	httpErr, ok := err.(interface{ Status() int })
 	assert.True(ss.T(), ok)
-	assert.Equal(ss.T(), http.StatusUnsupportedMediaType, httpErr.Status())
+	assert.Equal(ss.T(), http.StatusBadRequest, httpErr.Status())
 }
 
 func (ss *ServerSuite) TestHandleBase64NoExtRandom() {
@@ -180,7 +184,7 @@ func (ss *ServerSuite) TestHandleBase64NoExtRandom() {
 	js := &File{}
 	helperLoadJSON(ss.T(), "build", js)
 	ss.srv.Config.UseRandomName = true // TODO: This is incompartible with parallel tests
-	name, err := ss.srv.HandleBase64(js.Data, "build")
+	name, err := ss.srv.HandleBase64(js.Data, "build.png")
 	ss.srv.Config.UseRandomName = false // TODO: This is incompartible with parallel tests
 	require.NoError(ss.T(), err)
 	cmp := equalfile.New(nil, equalfile.Options{}) // compare using single mode

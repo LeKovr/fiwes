@@ -11,6 +11,7 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -52,13 +53,16 @@ const (
 	// ErrFmtBadDownload returned when download status != 200
 	ErrFmtBadDownload = "image download failed (%d)"
 
+	ErrUnsupportedScheme = "unsupported protocol scheme"
+	ErrEmptyHostname     = "hostname must not be empty"
+
 	// Base64MinCommaIndex holds minimal base64 image prefix len
 	Base64MinCommaIndex = 21
 
-	// HostPrefix holds external image URL prefix.
-	HostPrefix = "https://"
-	// HostPrefixHTTP holds external image URL HTTP prefix.
-	HostPrefixHTTP = "http://"
+	// HostScheme holds external image URL scheme.
+	HostScheme = "https"
+	// HostSchemeHTTP holds external image URL HTTP scheme.
+	HostSchemeHTTP = "http"
 )
 
 var ReImageFileName = regexp.MustCompile(`^[\w][\w\s-]+\.[A-Za-z]{3}$`)
@@ -106,22 +110,50 @@ func (srv Service) HandleMultiPart(form *multipart.Form) (*string, error) {
 	}
 	return &name, nil
 }
+func (srv Service) CheckURL(rawURL string) error {
+	// Парсим URL для корректной обработки
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return err
+	}
 
-func (srv Service) IsURLAllowed(url string) bool {
-	for _, host := range srv.Config.AllowedImageHosts {
-		if strings.HasPrefix(url, HostPrefix+host) || strings.HasPrefix(url, HostPrefixHTTP+host) {
-			return true
+	// Проверяем допустимость схемы
+	if parsedURL.Scheme != HostSchemeHTTP && parsedURL.Scheme != HostScheme {
+		return errors.New(ErrUnsupportedScheme)
+	}
+
+	// Получаем хост (убираем порт если есть)
+	host := parsedURL.Hostname()
+	if host == "" {
+		return errors.New(ErrEmptyHostname)
+	}
+
+	// Приводим к нижнему регистру для case-insensitive сравнения
+	host = strings.ToLower(host)
+
+	for _, allowedHost := range srv.Config.AllowedImageHosts {
+		allowedHost = strings.ToLower(strings.TrimSpace(allowedHost))
+
+		// Точное совпадение хоста
+		if host == allowedHost {
+			return nil
+		}
+
+		// Проверка поддоменов (если разрешен example.com, то sub.example.com тоже разрешен)
+		if strings.HasSuffix(host, "."+allowedHost) {
+			return nil
 		}
 	}
-	return false
+
+	return errors.New(ErrHostNotAllowed)
 }
 
 // HandleURL reveives and stores image from URL
 func (srv Service) HandleURL(url string) (*string, error) {
-	if !srv.IsURLAllowed(url) {
+	if err := srv.CheckURL(url); err != nil {
 		return nil, NewHTTPError(
 			http.StatusBadRequest,
-			errors.New(ErrHostNotAllowed),
+			err,
 		)
 	}
 	response, err := http.Get(url) // #nosec G107, URL prefix checked above

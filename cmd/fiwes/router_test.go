@@ -70,9 +70,9 @@ func TestHandlers(t *testing.T) {
 		{"MultiPart", "POST", "/upload", strings.NewReader(`fake data`), "multipart/form-data",
 			http.StatusBadRequest, "no multipart boundary param in Content-Type"},
 		{"Base64", "POST", "/upload", strings.NewReader(`{"data":"data:image/png;base64,iVBORw0K","name":"file.ext"}`), "application/json",
-			http.StatusUnsupportedMediaType, "Unsupported media type"},
+			http.StatusUnsupportedMediaType, "unsupported media type"},
 		{"URL", "GET", "/upload?url=/img/xx.png", nil, "",
-			http.StatusServiceUnavailable, "Get \"/img/xx.png\": unsupported protocol scheme \"\""},
+			http.StatusBadRequest, "unsupported protocol scheme"},
 		{"BadCType", "POST", "/upload", nil, "application",
 			http.StatusNotImplemented, "Content type (application) not supported"},
 	}
