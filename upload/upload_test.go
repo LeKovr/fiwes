@@ -53,6 +53,7 @@ func (ss *ServerSuite) SetupSuite() {
 	require.NoError(ss.T(), err)
 	ss.cfg.Dir = filepath.Join(ss.root, "/img")
 	ss.cfg.PreviewDir = filepath.Join(ss.root, "/preview")
+	ss.cfg.AllowedImageHosts = []string{"127.0.0.1:"}
 	ss.srv = New(ss.cfg, log)
 }
 
@@ -215,7 +216,7 @@ func (ss *ServerSuite) TestHandleURLNotFound() {
 }
 
 func (ss *ServerSuite) TestHandleURLNotAvailable() {
-	_, err := ss.srv.HandleURL("http://0.0.0.0:1/build.png")
+	_, err := ss.srv.HandleURL("http://127.0.0.1:1/build.png")
 	require.NotNil(ss.T(), err)
 
 	httpErr, ok := err.(interface{ Status() int })

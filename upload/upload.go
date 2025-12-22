@@ -14,6 +14,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/sunshineplan/imgconv"
@@ -24,12 +25,13 @@ import (
 
 // Config holds all config vars
 type Config struct {
-	DownloadLimit int64  `long:"download_limit" default:"8" description:"External image size limit (Mb)"`
-	Dir           string `long:"dir" default:"data/img" description:"Image upload destination"`
-	PreviewDir    string `long:"preview_dir" default:"data/preview" description:"Preview image destination"`
-	PreviewWidth  int    `long:"preview_width" default:"100" description:"Preview image width"`
-	PreviewHeight int    `long:"preview_heigth" default:"100" description:"Preview image heigth"`
-	UseRandomName bool   `long:"random_name" description:"Do not keep uploaded image filename"`
+	DownloadLimit     int64    `long:"download_limit" default:"8" description:"External image size limit (Mb)"`
+	Dir               string   `long:"dir" default:"data/img" description:"Image upload destination"`
+	PreviewDir        string   `long:"preview_dir" default:"data/preview" description:"Preview image destination"`
+	PreviewWidth      int      `long:"preview_width" default:"100" description:"Preview image width"`
+	PreviewHeight     int      `long:"preview_heigth" default:"100" description:"Preview image heigth"`
+	UseRandomName     bool     `long:"random_name" description:"Do not keep uploaded image filename"`
+	AllowedImageHosts []string `long:"image_host" description:"Hostnames allowed to fetch images from"`
 }
 
 // codebeat:enable[TOO_MANY_IVARS]
@@ -43,12 +45,23 @@ const (
 	ErrNotImage = "unsupported media type"
 	// ErrNoCTypeExt returned when filename does not contain extension and we can't get it from content type
 	ErrNoCTypeExt = "file ext for content type not found"
+	// ErrHostNotAllowed returned when requested URL's host not in allowed list
+	ErrHostNotAllowed = "image source host not in allowed list"
+	// ErrBadFilename returned when download status != 200
+	ErrBadFilename = "image filename does not match required mask"
 	// ErrFmtBadDownload returned when download status != 200
 	ErrFmtBadDownload = "image download failed (%d)"
 
 	// Base64MinCommaIndex holds minimal base64 image prefix len
 	Base64MinCommaIndex = 21
+
+	// HostPrefix holds external image URL prefix.
+	HostPrefix = "https://"
+	// HostPrefixHTTP holds external image URL HTTP prefix.
+	HostPrefixHTTP = "http://"
 )
+
+var ReImageFileName = regexp.MustCompile(`^[\w][\w\s-]+\.[A-Za-z]{3}$`)
 
 // Service holds upload service
 type Service struct {
@@ -72,6 +85,12 @@ func (srv Service) HandleMultiPart(form *multipart.Form) (*string, error) {
 		)
 	}
 	file := files[0]
+	if !ReImageFileName.MatchString(file.Filename) {
+		return nil, NewHTTPError(
+			http.StatusBadRequest,
+			errors.New(ErrBadFilename),
+		)
+	}
 	src, err := file.Open()
 	if err != nil {
 		return nil, err
@@ -87,8 +106,23 @@ func (srv Service) HandleMultiPart(form *multipart.Form) (*string, error) {
 	return &name, nil
 }
 
+func (srv Service) IsURLAllowed(url string) bool {
+	for _, host := range srv.Config.AllowedImageHosts {
+		if strings.HasPrefix(url, HostPrefix+host) || strings.HasPrefix(url, HostPrefixHTTP+host) {
+			return true
+		}
+	}
+	return false
+}
+
 // HandleURL reveives and stores image from URL
 func (srv Service) HandleURL(url string) (*string, error) {
+	if !srv.IsURLAllowed(url) {
+		return nil, NewHTTPError(
+			http.StatusBadRequest,
+			errors.New(ErrHostNotAllowed+url),
+		)
+	}
 	response, err := http.Get(url)
 	if err != nil {
 		return nil, NewHTTPError(http.StatusServiceUnavailable, err)
@@ -103,6 +137,13 @@ func (srv Service) HandleURL(url string) (*string, error) {
 	src := io.LimitReader(response.Body, srv.getLimit)
 	contentType := response.Header.Get("Content-Type")
 	fileName := path.Base(response.Request.URL.Path)
+	if !ReImageFileName.MatchString(fileName) {
+		return nil, NewHTTPError(
+			http.StatusBadRequest,
+			errors.New(ErrBadFilename),
+		)
+	}
+
 	name, err := srv.saveFile(src, contentType, fileName)
 	if err != nil {
 		return nil, err
